@@ -1,0 +1,22 @@
+iso-helper 帮助文件
+
+iso-helper 是用来辅助进行 kylin-desktop-v10-sp1 进行母盘定制的工具。
+其主要功能如下：
+1. 辅助快速释放/打包 live 系统的镜像文件（filesystem.squashfs）。
+2. 辅助快速生成/更新 live 系统大小文件（filesystem.size）。
+3. 辅助快速更新 iso 根目录中的 md5 校验文件（md5sum.txt）。
+4. 辅助快速制作 iso 镜像。
+5. 辅助准备 chroot 环境，自动为 chroot 环境挂载必备的内存文件系统（procfs、devtmpfs、sysfs、tmpfs等），并将主机根目录以只读方式挂载到 chroot 环境的 /host 目录中，方便进行文件的操作（无法映射主机系统中其他分区的挂载目录，待修复）。
+6. 辅助清理 chroot 环境，主要是对第 5 点进行反向操作（卸载已挂载的文件系统）。
+
+使用方法如下：
+iso-helper.sh <命令> [参数]
+命令:
+  -m | m | mount-system-entry        : 挂载系统目录到 "squashfs-root"。用来准备 chroot 的系统环境。
+  -u | u | umount-system-entry       : 从 "squashfs-root" 卸载系统目录。用来在退出 chroot 后清理系统环境。
+  -M | M | mksquashfs                : 将 "squashfs-root" 文件系统打包为 squashfs 文件: "filesystem.squashfs"。需要在 squashfs 文件同级目录中操作。
+  -U | U | unsquashfs                : 从 squashfs 文件: "filesystem.squashfs" 中解包 "squashfs-root" 文件系统。需要在 squashfs 文件同级目录中操作。
+  -S | S | filesystemsize            : 计算 "squashfs-root" 文件系统大小并生成/更新 "filesystem.size" 文件。需要在 squashfs 文件同级目录中操作。
+  -md5 <iso root>                    : 计算 ISO 目录中文件的 MD5 校验并生成/更新 "md5sum.txt" 文件。
+  -iso <file> <label> <iso root>     : 从 "iso root" 构建标签为 "label" 的 ISO 文件 "file"。
+  -v | version                       : 显示工具的版本。

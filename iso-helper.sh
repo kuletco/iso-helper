@@ -293,11 +293,11 @@ MountSystemEntries() {
     mkdir -p ${RootDir}/proc ${RootDir}/sys ${RootDir}/dev ${RootDir}/run ${RootDir}/tmp || return 1
 
     if [ -x ${RootDir}/bin/mount ]; then
-        Mount --chroot ${RootDir} --types proc proc /proc
-        Mount --chroot ${RootDir} --types sysfs sysfs /sys
-        Mount --chroot ${RootDir} --types devtmpfs udev /dev
+        Mount --chroot ${RootDir} --types proc proc-chroot /proc
+        Mount --chroot ${RootDir} --types sysfs sysfs-chroot /sys
+        Mount --chroot ${RootDir} --types devtmpfs udev-chroot /dev
         [ -d ${RootDir}/dev/pts ] || mkdir ${RootDir}/dev/pts
-        Mount --chroot ${RootDir} --types devpts devpts /dev/pts
+        Mount --chroot ${RootDir} --types devpts devpts-chroot /dev/pts
         Mount --bind /run ${RootDir}/run
         Mount --bind /tmp ${RootDir}/tmp
 

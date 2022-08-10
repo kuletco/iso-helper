@@ -40,7 +40,7 @@ CheckPrivilege() {
 }
 
 CheckBuildEnvironment() {
-    Utils="blkid lsblk losetup parted mkfs.ext4 mkfs.fat mksquashfs"
+    Utils="blkid lsblk losetup parted mkfs.ext4 mkfs.fat mksquashfs findmnt"
 
     for Util in ${Utils}; do
         if ! which ${Util} >/dev/null 2>&1; then
@@ -290,7 +290,7 @@ MountSystemEntries() {
 
     local RootDir=$1
 
-    mkdir -p ${RootDir}/proc ${RootDir}/sys ${RootDir}/dev ${RootDir}/run ${RootDir}/tmp ${RootDir}/host || return 1
+    mkdir -p ${RootDir}/proc ${RootDir}/sys ${RootDir}/dev ${RootDir}/run ${RootDir}/tmp || return 1
 
     if [ -x ${RootDir}/bin/mount ]; then
         Mount --chroot ${RootDir} --types proc proc /proc
@@ -300,8 +300,15 @@ MountSystemEntries() {
         Mount --chroot ${RootDir} --types devpts devpts /dev/pts
         Mount --bind /run ${RootDir}/run
         Mount --bind /tmp ${RootDir}/tmp
-        # FIXME: Cannot map other partitions or disks of the host os.
-        Mount --readonly --bind / ${RootDir}/host
+
+        # Bind rootfs of host os to chroot environment
+        if which findmnt > /dev/null 2>&1; then
+            mkdir -p ${RootDir}/host || return 1
+            findmnt -es --real -n -t "ext2,ext3,ext4,vfat,ntfs,xfs,btrfs" | awk '{print $1}' | while read MountPoint
+            do
+                Mount --readonly --bind ${MountPoint} ${RootDir}/host${MountPoint%/}
+            done
+        fi
     else
         echo -e "MOUNT: ${C_WARN} Please unpack rootfs package first."
         return 99

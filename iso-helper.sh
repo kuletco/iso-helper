@@ -325,17 +325,10 @@ UnMountSystemEntries() {
     fi
 
     local RootDir=$1
-    local Prefix=""
-
-    [ -x ${RootDir}/bin/mountpoint ] && Prefix="chroot ${RootDir}"
 
     for dir in host tmp run dev/pts dev sys proc
     do
-        if eval ${Prefix} mountpoint -q ${RootDir}/proc; then
-            UnMount --chroot ${RootDir} ${dir} || return 1
-        else
-            UnMount ${RootDir}/${dir} || return 1
-        fi
+        UnMount ${RootDir}/${dir} || return 1
     done
 
     rm -rf ${RootDir}/host

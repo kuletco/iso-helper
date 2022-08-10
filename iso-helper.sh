@@ -74,7 +74,7 @@ IsTargetMounted() {
     if [ -d "${Target}" ]; then
         return $(mountpoint -q "${Target}")
     elif [ -f "${Target}" -o -L "${Target}" ]; then
-        return $(mount | /bin/grep -q ${Target})
+        return $(cat /proc/mounts | /bin/grep -q ${Target})
     else
         return 1
     fi
@@ -220,7 +220,7 @@ UnMount() {
             printf " [${C_OK}]\n"
         fi
     else
-        dirlist=$(eval ${Prefix} mount | grep "${Directory}")
+        dirlist=$(eval ${Prefix} cat /proc/mounts | grep "${Directory}")
         [ -n "${dirlist}" ] && return 0
         for dir in ${dirlist}
         do

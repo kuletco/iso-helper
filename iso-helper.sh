@@ -596,42 +596,27 @@ MakeISO() {
         LiveCDRoot=.
     fi
 
-    # local ISOTOOL=mkisofs
-    local ISOTOOL=xorriso
-
     local ISOARGS=''
-    if [ "x${ISOTOOL}" = "xxorriso" ]; then
-        ISOARGS="${ISOARGS:+${ISOARGS} }-as mkisofs"
-    fi
     ISOARGS="${ISOARGS:+${ISOARGS} }-volid \"${ISOLabel}\""
     ISOARGS="${ISOARGS:+${ISOARGS} }-joliet"
     ISOARGS="${ISOARGS:+${ISOARGS} }-joliet-long"
-    # ISOARGS="${ISOARGS:+${ISOARGS} }-rock"
-    ISOARGS="${ISOARGS:+${ISOARGS} }-rational-rock"
-    ISOARGS="${ISOARGS:+${ISOARGS} }-input-charset utf-8"
     ISOARGS="${ISOARGS:+${ISOARGS} }-full-iso9660-filenames"
-    ISOARGS="${ISOARGS:+${ISOARGS} }-eltorito-boot isolinux/isolinux.bin"
-    ISOARGS="${ISOARGS:+${ISOARGS} }-eltorito-catalog isolinux/boot.cat"
+    ISOARGS="${ISOARGS:+${ISOARGS} }-input-charset utf-8"
+    ISOARGS="${ISOARGS:+${ISOARGS} }-cache-inodes"
+    ISOARGS="${ISOARGS:+${ISOARGS} }-allow-multidot"
+    ISOARGS="${ISOARGS:+${ISOARGS} }-rational-rock"
+    ISOARGS="${ISOARGS:+${ISOARGS} }-translation-table"
+    ISOARGS="${ISOARGS:+${ISOARGS} }-udf"
+    # ISOARGS="${ISOARGS:+${ISOARGS} }-allow-limited-size"
     ISOARGS="${ISOARGS:+${ISOARGS} }-no-emul-boot"
     ISOARGS="${ISOARGS:+${ISOARGS} }-boot-load-size 4"
     ISOARGS="${ISOARGS:+${ISOARGS} }-boot-info-table"
+    ISOARGS="${ISOARGS:+${ISOARGS} }-eltorito-boot isolinux/isolinux.bin"
+    ISOARGS="${ISOARGS:+${ISOARGS} }-eltorito-catalog isolinux/boot.cat"
     ISOARGS="${ISOARGS:+${ISOARGS} }-eltorito-alt-boot"
-    if [ "x${ISOTOOL}" = "xxorriso" ]; then
-        ISOARGS="${ISOARGS:+${ISOARGS} }--efi-boot boot/grub/efi.img"
-        # ISOARGS="${ISOARGS:+${ISOARGS} }-e boot/grub/efi.img"
-    else
-        ISOARGS="${ISOARGS:+${ISOARGS} }-efi-boot boot/grub/efi.img"
-    fi
     ISOARGS="${ISOARGS:+${ISOARGS} }-no-emul-boot"
-    if [ "x${ISOTOOL}" = "xxorriso" ]; then
-        ISOARGS="${ISOARGS:+${ISOARGS} }-isohybrid-gpt-basdat"
-    else
-        ISOARGS="${ISOARGS:+${ISOARGS} }-translation-table"
-        ISOARGS="${ISOARGS:+${ISOARGS} }-udf"
-        ISOARGS="${ISOARGS:+${ISOARGS} }-allow-limited-size"
-        ISOARGS="${ISOARGS:+${ISOARGS} }-cache-inodes"
-        ISOARGS="${ISOARGS:+${ISOARGS} }-no-bak"
-    fi
+    ISOARGS="${ISOARGS:+${ISOARGS} }-efi-boot boot/grub/efi.img"
+    ISOARGS="${ISOARGS:+${ISOARGS} }-no-bak"
     ISOARGS="${ISOARGS:+${ISOARGS} }-log-file ${ISOLogFile}.tmp"
     ISOARGS="${ISOARGS:+${ISOARGS} }-verbose"
     # ISOARGS="${ISOARGS:+${ISOARGS} }--quiet"
@@ -641,12 +626,12 @@ MakeISO() {
     PrepareExcludes Backup ${UUID} "${ISOExcludeList}" ${LiveCDRoot}
 
     echo "ISO Build Command:" > ${ISOLogFile}
-    eval echo "${ISOTOOL} ${ISOARGS} -output \"${ISOFile}\" \"${LiveCDRoot}\" >> ${ISOLogFile}"
-    echo "" >> ${ISOLogFile}
+    # eval echo "genisoimage ${ISOARGS} -output \"${ISOFile}\" \"${LiveCDRoot}\" >> ${ISOLogFile}"
+    # echo "" >> ${ISOLogFile}
 
     local ReturnCode=0
     printf "MAKEISO: ${C_HL}$(basename $(pwd))${C_CLR} --> ${C_BLU}$(basename ${ISOFile})${C_CLR} ..."
-    eval "${ISOTOOL} ${ISOARGS} -output \"${ISOFile}\" \"${LiveCDRoot}\" 2>/dev/null"
+    eval "genisoimage ${ISOARGS} -output \"${ISOFile}\" \"${LiveCDRoot}\" 2>/dev/null"
     ReturnCode=$?
     cat ${ISOLogFile}.tmp >> ${ISOLogFile}
     rm -f ${ISOLogFile}.tmp

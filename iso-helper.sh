@@ -1,6 +1,6 @@
 #!/bin/bash
 
-Version=1.0.0
+Version=1.1.0
 ScriptDir=$(cd $(dirname ${BASH_SOURCE}); pwd)
 WorkDir=$(pwd)
 LiveCDRoot=${WorkDir}

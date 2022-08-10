@@ -642,6 +642,20 @@ MakeISO() {
         printf " [${C_OK}]\n"
     fi
 
+    local ISOHYBRID=""
+    ISOHYBRID="${ISOHYBRID:+${ISOHYBRID} }--uefi"
+    ISOHYBRID="${ISOHYBRID:+${ISOHYBRID} }--partok"
+    ISOHYBRID="${ISOHYBRID:+${ISOHYBRID} }--verbose"
+
+    printf "ISOHYBRID: ${C_BLU}$(basename ${ISOFile})${C_CLR} ..."
+    eval "isohybrid ${ISOHYBRID} \"${ISOFile}\"" >> ${ISOLogFile} 2>&1
+    ReturnCode=$?
+    if [ $ReturnCode -ne 0 ]; then
+        printf " [${C_FL}]\n"
+    else
+        printf " [${C_OK}]\n"
+    fi
+
     # Restore Exclude files
     PrepareExcludes Restore ${UUID} "${ISOExcludeList}" ${LiveCDRoot}
 

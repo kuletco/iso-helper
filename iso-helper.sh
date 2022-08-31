@@ -40,7 +40,7 @@ CheckPrivilege() {
 }
 
 CheckBuildEnvironment() {
-    Utils="blkid lsblk losetup parted mkfs.ext4 mkfs.fat mksquashfs findmnt"
+    Utils="blkid lsblk losetup parted mkfs.ext4 mkfs.fat mksquashfs findmnt qemu-user-static"
 
     for Util in ${Utils}; do
         if ! which ${Util} >/dev/null 2>&1; then

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-Version=1.1.1
+Version=1.1.2
 ScriptDir=$(cd $(dirname ${BASH_SOURCE}); pwd)
 WorkDir=$(pwd)
 LiveCDRoot=${WorkDir}
@@ -40,7 +40,7 @@ CheckPrivilege() {
 }
 
 CheckBuildEnvironment() {
-    Utils="blkid lsblk losetup parted mkfs.ext4 mkfs.fat mksquashfs findmnt qemu-user-static"
+    Utils="blkid lsblk losetup parted mkfs.ext4 mkfs.fat mksquashfs findmnt"
 
     for Util in ${Utils}; do
         if ! which ${Util} >/dev/null 2>&1; then
@@ -48,6 +48,11 @@ CheckBuildEnvironment() {
             return 1
         fi
     done
+
+    if ! ls /usr/bin/qemu-*-static > /dev/null 2>&1; then
+        echo -e "Please install [${C_RED}qemu-user-static${C_CLR}] first"
+        return 1
+    fi
 
     return 0
 }

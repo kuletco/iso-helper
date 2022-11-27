@@ -1,6 +1,10 @@
 #!/bin/bash
+# @Author: Wang Hong
+# @Date:   2022-10-22 12:38:37
+# @Last Modified by:   Wang Hong
+# @Last Modified time: 2022-11-27 13:12:30
 
-Version=1.1.2
+Version=1.2.0
 ScriptDir=$(cd $(dirname ${BASH_SOURCE}); pwd)
 WorkDir=$(pwd)
 LiveCDRoot=${WorkDir}
@@ -49,10 +53,10 @@ CheckBuildEnvironment() {
         fi
     done
 
-    if ! ls /usr/bin/qemu-*-static > /dev/null 2>&1; then
-        echo -e "Please install [${C_RED}qemu-user-static${C_CLR}] first"
-        return 1
-    fi
+    # if ! ls /usr/bin/qemu-*-static > /dev/null 2>&1; then
+    #     echo -e "Please install [${C_RED}qemu-user-static${C_CLR}] first"
+    #     return 1
+    # fi
 
     return 0
 }
@@ -465,21 +469,23 @@ GenFileSystemSize() {
     fi
 }
 
-# Usage: GenMD5Sum <Live CD Root Dir>
-GenMD5Sum() {
-    if [ $# -ne 1 ]; then
-        echo -e "Usage: GenMD5Sum <Live CD Root Dir>"
+# Usage: GenSums <Sum Type: md5 | sha256> <Live CD Root Dir>
+GenSums() {
+    if [ $# -ne 2 ]; then
+        echo -e "Usage: GenSums <Sum Type: md5 | sha256> <Live CD Root Dir>"
         return 1
     fi
 
-    local LiveCDRoot=$1
-    local MD5Sum="${LiveCDRoot}/md5sum.txt"
+    local SumType=$1
+    local LiveCDRoot=$2
+    local ReturnCode=0
+    local SUM_TOOL=''
+    local SUM_FILE=''
+
     if [ ! -d "${LiveCDRoot}" ]; then
         echo -e "Live CD root [${LiveCDRoot}] is not exist or a directory!"
         return 1
     fi
-
-    [ -f "${MD5Sum}" ] && rm -f "${MD5Sum}"
 
     # Push ISO Root to build
     if [ "x${LiveCDRoot}" != "x." ]; then
@@ -488,14 +494,30 @@ GenMD5Sum() {
 
     local Exclude=''
     Exclude="${Exclude:+${Exclude}|}isolinux/boot.cat"
+    Exclude="${Exclude:+${Exclude}|}$(basename ${RootDir})"
     for Ex in ${ISOExcludeList};
     do
         Exclude="${Exclude:+${Exclude}|}${Ex}"
     done
 
-    local ReturnCode=0
-    printf "GENMD5SUM: Calcing ${C_HL}$(basename $(pwd))${C_CLR} MD5 Sum ..."
-    if ! find -type f -print0 | grep -vzE "\"${Exclude}\"" | xargs -0 md5sum | tee md5sum.txt >/dev/null; then
+    case $SumType in
+        md5|md5sum)
+            SUM_TOOL=md5sum
+            SUM_FILE="${LiveCDRoot}/md5sum.txt"
+            printf "GENMD5SUM: Calcing ${C_HL}$(basename $(pwd))${C_CLR} MD5 Sum ..."
+        ;;
+        sha256|sha256sum)
+            SUM_TOOL=sha256sum
+            SUM_FILE="${LiveCDRoot}/SHA256SUMS"
+            printf "SHA256SUM: Calcing ${C_HL}$(basename $(pwd))${C_CLR} Sha256 Sum ..."
+        ;;
+        *)
+        ;;
+    esac
+
+    [ -f "${SUM_FILE}" ] && rm -f "${SUM_FILE}"
+    find -type f -print0 | grep -vzE "\"${Exclude}\"" | xargs -0 ${SUM_TOOL} | tee ${SUM_FILE} >/dev/null;
+    if [ $? -ne 0 ]; then
         printf " [${C_FL}]\n"
         ReturnCode=1
     else
@@ -507,6 +529,30 @@ GenMD5Sum() {
         popd >/dev/null || return $?
     fi
     return ${ReturnCode}
+}
+
+# Usage: GenMD5Sum <Live CD Root Dir>
+GenMD5Sum() {
+    if [ $# -ne 1 ]; then
+        echo -e "Usage: GenMD5Sum <Live CD Root Dir>"
+        return 1
+    fi
+
+    local LiveCDRoot=$1
+
+    GenSums md5 ${LiveCDRoot}
+}
+
+# Usage: GenSha256Sum <Live CD Root Dir>
+GenSha256Sum() {
+    if [ $# -ne 1 ]; then
+        echo -e "Usage: GenSha256Sum <Live CD Root Dir>"
+        return 1
+    fi
+
+    local LiveCDRoot=$1
+
+    GenSums sha256 ${LiveCDRoot}
 }
 
 # Usage: PrepareExcludes <Backup|Restore> <UUID> <Exclude List> <ISO Root Dir>
@@ -670,6 +716,73 @@ MakeISO() {
     return ${ReturnCode}
 }
 
+# Usage: UnpackISO <ISO File> <Target Dir>
+UnpackISO() {
+    if [ $# -ne 2 ]; then
+        echo -e "Usage: UnpackISO <ISO File> <Target Dir>"
+        return 1
+    fi
+
+    local ISOFile=$1
+    local LiveCDRoot=$2
+    local ISOMount=.${ISOFile%.*}
+
+    if [ ! -f "${ISOFile}" ]; then
+        echo -e "ISO file [${ISOFile}] is not exist or a directory!"
+        return 1
+    fi
+
+    if [ -d "${LiveCDRoot}" ]; then
+        local Size=$(du -sb "${LiveCDRoot}" | awk '{print $1}')
+        if [ $Size -gt 4096 ]; then
+            echo -e "Target dir [${LiveCDRoot}] is exist and not empty, please remove it manual."
+            return 1
+        fi
+    else
+        mkdir -p "${LiveCDRoot}"
+    fi
+
+    mkdir -p "${ISOMount}"
+
+    printf "MOUNTISO: Mounting ${C_HL}${ISOFile}${C_CLR} --> ${C_BLU}${ISOMount}${C_CLR} ..."
+    mount -r "${ISOFile}" "${ISOMount}"
+    if [ $? -ne 0 ]; then
+        printf " [${C_FL}]\n"
+        return 1
+    else
+        printf " [${C_OK}]\n"
+    fi
+
+    printf "RSYNC: Copying files ${C_HL}${ISOMount}${C_CLR} --> ${C_BLU}${LiveCDRoot}${C_CLR} ..."
+    rsync -aq --exclude='*.TBL' --exclude='*.tbl' "${ISOMount}/" "${LiveCDRoot}" > /dev/null
+    if [ $? -ne 0 ]; then
+        printf " [${C_FL}]\n"
+    else
+        printf " [${C_OK}]\n"
+    fi
+
+    printf "UMOUNTISO: UMounting ${C_HL}${ISOFile}${C_CLR} ..."
+    umount "${ISOMount}"
+    if [ $? -ne 0 ]; then
+        printf " [${C_FL}]\n"
+        return 1
+    else
+        printf " [${C_OK}]\n"
+    fi
+
+    rm -rf "${ISOMount}"
+
+    printf "CHMOD: Processing permissive of the files and folders ..."
+    chmod u+w -R "${LiveCDRoot}"
+    if [ $? -ne 0 ]; then
+        printf " [${C_FL}]\n"
+        return 1
+    else
+        printf " [${C_OK}]\n"
+        return 0
+    fi
+}
+
 Usage_enUS() {
     local BASE_TARGET=$(basename ${RootDir})
     local BASE_SQUASH=$(basename ${SquashfsFile})
@@ -681,8 +794,10 @@ Usage_enUS() {
     echo -e "  -M | M | mksquashfs                : Package \"squashfs-root\" to squashfs file: \"${BASE_SQUASH}\". Need work in the same folder of squashfs file."
     echo -e "  -U | U | un-squashfs               : Unpack \"squashfs-root\" from squashfs file: \"${BASE_SQUASH}\".Need work in the same folder of squashfs file."
     echo -e "  -S | S | gen-filesystemsize        : Calc \"squashfs-root\" size and generate or update \"filesystem.size\" file.Need work in the same folder of squashfs file."
-    echo -e "  -md5sum <iso root>                 : Calc Files MD5SUM in ISO folder and generate or update \"md5sum.txt\" file."
-    echo -e "  -iso <file> <label> <iso root>     : Build ISO file with \"label\" from \"iso root\"."
+    echo -e "  -md5 <iso root>                    : Calc Files MD5 in ISO folder and generate or update \"md5sum.txt\" file."
+    echo -e "  -sha256 <iso root>                 : Calc Files SHA256 in ISO folder and generate or update \"SHA256SUMS\" file."
+    echo -e "  -iso <file> <label> <iso root>     : Build ISO \"file\" with \"label\" from \"iso root\"."
+    echo -e "  -uniso <file> <target dir>         : Unpack ISO \"file\" to  \"target dir\"."
     echo -e "  -v | version                       : Show the version of the tool."
 }
 
@@ -698,7 +813,9 @@ Usage_zhCN() {
     echo -e "  -U | U | unsquashfs                : 从 squashfs 文件: \"${BASE_SQUASH}\" 中解包 \"squashfs-root\" 文件系统。需要在 squashfs 文件同级目录中操作。"
     echo -e "  -S | S | filesystemsize            : 计算 \"squashfs-root\" 文件系统大小并生成/更新 \"filesystem.size\" 文件。需要在 squashfs 文件同级目录中操作。"
     echo -e "  -md5 <iso root>                    : 计算 ISO 目录中文件的 MD5 校验并生成/更新 \"md5sum.txt\" 文件。"
+    echo -e "  -sha256 <iso root>                 : 计算 ISO 目录中文件的 SHA256 校验并生成/更新 \"SHA256SUMS\" 文件。"
     echo -e "  -iso <file> <label> <iso root>     : 从 \"iso root\" 构建标签为 \"label\" 的 ISO 文件 \"file\"。"
+    echo -e "  -uniso <file> <target dir>         : 将 ISO 文件 \"file\" 释放到目标文件夹 \"target dir\"。"
     echo -e "  -v | version                       : 显示工具的版本。"
 }
 
@@ -729,23 +846,23 @@ CheckBuildEnvironment || exit $?
 while [ $# -ne 0 ]
 do
     case $1 in
-        -m|m|mount-system-entry)
+        -m|m|mount|mount-system-entry)
             shift
             CheckPrivilege || exit $?
             MountSystemEntries "${RootDir}" || exit $?
             ;;
-        -u|u|umount-system-entry)
+        -u|u|umount|umount-system-entry)
             shift
             CheckPrivilege || exit $?
             ReleaseRes "${RootDir}" || exit $?
             UnMountSystemEntries "${RootDir}" || exit $?
             ;;
-        -M|M|mksquashfs)
+        -M|M|mk|mksquashfs)
             shift
             CheckPrivilege || exit $?
             MkSquashfs "${SquashfsFile}" "${RootDir}" || exit $?
             ;;
-        -U|U|unsquashfs)
+        -U|U|un|unsquashfs)
             shift
             CheckPrivilege || exit $?
             UnSquashfs "${SquashfsFile}" || exit $?
@@ -754,11 +871,17 @@ do
             shift
             GenFileSystemSize "${FileSystemSize}" "${RootDir}" || exit $?
             ;;
-        -md5)
+        -md5|md5sum)
             shift
             LiveCDRoot=$1
             shift
             GenMD5Sum "${LiveCDRoot}" || exit $?
+            ;;
+        -sha256|sha256sum)
+            shift
+            LiveCDRoot=$1
+            shift
+            GenSha256Sum "${LiveCDRoot}" || exit $?
             ;;
         -iso)
             shift
@@ -767,7 +890,15 @@ do
             LiveCDRoot=$3
             shift 3
             # GenMD5Sum "${LiveCDRoot}" || exit $?
+            # GenSha256Sum "${LiveCDRoot}" || exit $?
             MakeISO "${ISOFile}" "${ISOLabel}" "${LiveCDRoot}" || exit $?
+            ;;
+        -uniso)
+            shift
+            ISOFile=$1
+            LiveCDRoot=$2
+            shift 2
+            UnpackISO "${ISOFile}" "${LiveCDRoot}" || exit $?
             ;;
         -v|v|-version|version)
             shift

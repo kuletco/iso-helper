@@ -2,15 +2,16 @@
 # @Author: Wang Hong
 # @Date:   2022-10-22 12:38:37
 # @Last Modified by:   Wang Hong
-# @Last Modified time: 2022-12-29 11:33:26
+# @Last Modified time: 2022-12-29 11:47:39
 
-Version=1.3.1
+Version=1.4.0
 ScriptDir=$(cd $(dirname ${BASH_SOURCE}); pwd)
 WorkDir=$(pwd)
 LiveCDRoot=${WorkDir}
 RootDir=${WorkDir}/squashfs-root
 SquashfsFile=${WorkDir}/filesystem.squashfs
 FileSystemSize=${WorkDir}/filesystem.size
+FileSystemManifest=${WorkDir}/filesystem.manifest
 
 ISOExcludeList=(
     "squashfs-root"
@@ -497,6 +498,33 @@ GenFileSystemSize() {
     fi
 }
 
+# Usage: GenFileSystemManifest <FileSystem Manifest File> <RootDir>
+GenFileSystemManifest() {
+    local Usage="Usage: GenFileSystemManifest <FileSystem Manifest File> <RootDir>"
+    if [ $# -ne 2 ]; then
+        echo -e ${Usage}
+        return 1
+    fi
+
+    local FileSystemManifest=$1
+    local RootDir=$2
+    if [ ! -d "${RootDir}" ]; then
+        echo -e "Cannot find Rootfs dir."
+        return 1
+    fi
+
+    [ -f "${FileSystemManifest}" ] && rm -f "${FileSystemManifest}"
+
+    printf "GENFILESYSTEMMANIFEST: Generating ${C_HL}${RootDir##*${WorkDir}/}${C_CLR} Manifest ..."
+    if ! chroot "${RootDir}" dpkg-query -W > "${FileSystemManifest}"; then
+        printf " [${C_FL}]\n"
+        return 1
+    else
+        printf " [${C_OK}]\n"
+        return 0
+    fi
+}
+
 # Usage: GenSums <Sum Type: md5 | sha256> <Live CD Root Dir>
 GenSums() {
     local Usage="Usage: GenSums <Sum Type: md5 | sha256> <Live CD Root Dir>"
@@ -679,15 +707,15 @@ MakeISO() {
     ISOARGS="${ISOARGS:+${ISOARGS} }-translation-table"
     ISOARGS="${ISOARGS:+${ISOARGS} }-udf"
     # ISOARGS="${ISOARGS:+${ISOARGS} }-allow-limited-size"
-    if [ -f isolinux/isolinux.bin ]; then
+    if [ -f "${LiveCDRoot}/isolinux/isolinux.bin" ]; then
         ISOARGS="${ISOARGS:+${ISOARGS} }-no-emul-boot"
         ISOARGS="${ISOARGS:+${ISOARGS} }-boot-load-size 4"
         ISOARGS="${ISOARGS:+${ISOARGS} }-boot-info-table"
         ISOARGS="${ISOARGS:+${ISOARGS} }-eltorito-boot isolinux/isolinux.bin"
         ISOARGS="${ISOARGS:+${ISOARGS} }-eltorito-catalog isolinux/boot.cat"
-        ISOARGS="${ISOARGS:+${ISOARGS} }-eltorito-alt-boot"
     fi
-    if [ -f boot/grub/efi.img ]; then
+    if [ -f "${LiveCDRoot}/boot/grub/efi.img" ]; then
+        ISOARGS="${ISOARGS:+${ISOARGS} }-eltorito-alt-boot"
         ISOARGS="${ISOARGS:+${ISOARGS} }-no-emul-boot"
         ISOARGS="${ISOARGS:+${ISOARGS} }-efi-boot boot/grub/efi.img"
     fi
@@ -717,18 +745,20 @@ MakeISO() {
         printf " [${C_OK}]\n"
     fi
 
-    local ISOHYBRID=""
-    ISOHYBRID="${ISOHYBRID:+${ISOHYBRID} }--uefi"
-    ISOHYBRID="${ISOHYBRID:+${ISOHYBRID} }--partok"
-    ISOHYBRID="${ISOHYBRID:+${ISOHYBRID} }--verbose"
+    if [ -f "${LiveCDRoot}/isolinux/isolinux.bin" ]; then
+        local ISOHYBRID=""
+        ISOHYBRID="${ISOHYBRID:+${ISOHYBRID} }--uefi"
+        ISOHYBRID="${ISOHYBRID:+${ISOHYBRID} }--partok"
+        ISOHYBRID="${ISOHYBRID:+${ISOHYBRID} }--verbose"
 
-    printf "ISOHYBRID: ${C_BLU}$(basename ${ISOFile})${C_CLR} ..."
-    eval "isohybrid ${ISOHYBRID} \"${ISOFile}\"" >> ${ISOLogFile} 2>&1
-    ReturnCode=$?
-    if [ $ReturnCode -ne 0 ]; then
-        printf " [${C_FL}]\n"
-    else
-        printf " [${C_OK}]\n"
+        printf "ISOHYBRID: ${C_BLU}$(basename ${ISOFile})${C_CLR} ..."
+        eval "isohybrid ${ISOHYBRID} \"${ISOFile}\"" >> ${ISOLogFile} 2>&1
+        ReturnCode=$?
+        if [ $ReturnCode -ne 0 ]; then
+            printf " [${C_FL}]\n"
+        else
+            printf " [${C_OK}]\n"
+        fi
     fi
 
     # Calc ISO MD5 Sum
@@ -834,7 +864,7 @@ Usage_enUS() {
     echo -e "  -u | u | umount | umount-system-entry        : Unmount virtual disk from \"${BASE_TARGET}\". Used to clear system env after exit chroot."
     echo -e "  -M | M | mkfs | mksquashfs                   : Package \"squashfs-root\" to squashfs file: \"${BASE_SQUASH}\". Need work in the same folder of squashfs file."
     echo -e "  -U | U | unfs | unsquashfs                   : Unpack \"squashfs-root\" from squashfs file: \"${BASE_SQUASH}\".Need work in the same folder of squashfs file."
-    echo -e "  -S | S | filesystemsize                      : Calc \"squashfs-root\" size and generate or update \"filesystem.size\" file.Need work in the same folder of squashfs file."
+    echo -e "  -S | S | filesysteminfo                      : Calc \"squashfs-root\" size and manifest, then generate or update \"filesystem.size/filesystem.manifest\" file.Need work in the same folder of squashfs file."
     echo -e "  -md5    | md5    <iso root>                  : Calc Files MD5 in ISO folder and generate or update \"md5sum.txt\" file."
     echo -e "  -sha256 | sha256 <iso root>                  : Calc Files SHA256 in ISO folder and generate or update \"SHA256SUMS\" file."
     echo -e "  -sum    | sum    <iso root>                  : Calc Files MD5 and SHA256 in ISO folder and generate or update \"md5sum.txt\" and \"SHA256SUMS\" file."
@@ -853,7 +883,7 @@ Usage_zhCN() {
     echo -e "  -u | u | umount | umount-system-entry        : 从 \"${BASE_TARGET}\" 卸载系统目录。用来在退出 chroot 后清理系统环境。"
     echo -e "  -M | M | mkfs | mksquashfs                   : 将 \"squashfs-root\" 文件系统打包为 squashfs 文件: \"${BASE_SQUASH}\"。需要在 squashfs 文件同级目录中操作。"
     echo -e "  -U | U | unfs | unsquashfs                   : 从 squashfs 文件: \"${BASE_SQUASH}\" 中解包 \"squashfs-root\" 文件系统。需要在 squashfs 文件同级目录中操作。"
-    echo -e "  -S | S | filesystemsize                      : 计算 \"squashfs-root\" 文件系统大小并生成/更新 \"filesystem.size\" 文件。需要在 squashfs 文件同级目录中操作。"
+    echo -e "  -S | S | filesysteminfo                      : 计算 \"squashfs-root\" 文件系统大小及包列表，并生成/更新 \"filesystem.size/filesystem.manifest\" 文件。需要在 squashfs 文件同级目录中操作。"
     echo -e "  -md5    | md5    <iso root>                  : 计算 ISO 目录中文件的 MD5 校验并生成/更新 \"md5sum.txt\" 文件。"
     echo -e "  -sha256 | sha256 <iso root>                  : 计算 ISO 目录中文件的 SHA256 校验并生成/更新 \"SHA256SUMS\" 文件。"
     echo -e "  -sum    | sum    <iso root>                  : 计算 ISO 目录中文件的 MD5 和 SHA256 校验并生成/更新 \"md5sum.txt\" 和 \"SHA256SUMS\" 文件。"
@@ -909,9 +939,10 @@ do
             CheckPrivilege || exit $?
             UnSquashfs "${SquashfsFile}" || exit $?
             ;;
-        -S|S|filesystemsize)
+        -S|S|filesysteminfo)
             shift
             GenFileSystemSize "${FileSystemSize}" "${RootDir}" || exit $?
+            GenFileSystemManifest "${FileSystemManifest}" "${RootDir}" || exit $?
             ;;
         -md5|md5|md5sum)
             shift

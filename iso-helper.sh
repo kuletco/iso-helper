@@ -2,9 +2,9 @@
 # @Author: Wang Hong
 # @Date:   2022-10-22 12:38:37
 # @Last Modified by:   Wang Hong
-# @Last Modified time: 2022-11-29 12:58:43
+# @Last Modified time: 2022-12-29 11:33:26
 
-Version=1.3.0
+Version=1.3.1
 ScriptDir=$(cd $(dirname ${BASH_SOURCE}); pwd)
 WorkDir=$(pwd)
 LiveCDRoot=${WorkDir}
@@ -679,14 +679,18 @@ MakeISO() {
     ISOARGS="${ISOARGS:+${ISOARGS} }-translation-table"
     ISOARGS="${ISOARGS:+${ISOARGS} }-udf"
     # ISOARGS="${ISOARGS:+${ISOARGS} }-allow-limited-size"
-    ISOARGS="${ISOARGS:+${ISOARGS} }-no-emul-boot"
-    ISOARGS="${ISOARGS:+${ISOARGS} }-boot-load-size 4"
-    ISOARGS="${ISOARGS:+${ISOARGS} }-boot-info-table"
-    ISOARGS="${ISOARGS:+${ISOARGS} }-eltorito-boot isolinux/isolinux.bin"
-    ISOARGS="${ISOARGS:+${ISOARGS} }-eltorito-catalog isolinux/boot.cat"
-    ISOARGS="${ISOARGS:+${ISOARGS} }-eltorito-alt-boot"
-    ISOARGS="${ISOARGS:+${ISOARGS} }-no-emul-boot"
-    ISOARGS="${ISOARGS:+${ISOARGS} }-efi-boot boot/grub/efi.img"
+    if [ -f isolinux/isolinux.bin ]; then
+        ISOARGS="${ISOARGS:+${ISOARGS} }-no-emul-boot"
+        ISOARGS="${ISOARGS:+${ISOARGS} }-boot-load-size 4"
+        ISOARGS="${ISOARGS:+${ISOARGS} }-boot-info-table"
+        ISOARGS="${ISOARGS:+${ISOARGS} }-eltorito-boot isolinux/isolinux.bin"
+        ISOARGS="${ISOARGS:+${ISOARGS} }-eltorito-catalog isolinux/boot.cat"
+        ISOARGS="${ISOARGS:+${ISOARGS} }-eltorito-alt-boot"
+    fi
+    if [ -f boot/grub/efi.img ]; then
+        ISOARGS="${ISOARGS:+${ISOARGS} }-no-emul-boot"
+        ISOARGS="${ISOARGS:+${ISOARGS} }-efi-boot boot/grub/efi.img"
+    fi
     ISOARGS="${ISOARGS:+${ISOARGS} }-no-bak"
     ISOARGS="${ISOARGS:+${ISOARGS} }-log-file ${ISOLogFile}.tmp"
     ISOARGS="${ISOARGS:+${ISOARGS} }-verbose"

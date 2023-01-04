@@ -25,6 +25,16 @@ ISOExcludeList=(
     "filesystem.squashfs.back"
     "filesystem.squashfs.backup"
     "filesystem.squashfs.old"
+    "initrd.lz.bk"
+    "initrd.lz.bak"
+    "initrd.lz.back"
+    "initrd.lz.backup"
+    "initrd.lz.old"
+    "initrd.img.bk"
+    "initrd.img.bak"
+    "initrd.img.back"
+    "initrd.img.backup"
+    "initrd.img.old"
 )
 
 # Echo Color Settings

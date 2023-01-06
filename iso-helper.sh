@@ -27,6 +27,8 @@ ISOExcludeList=(
     filesystem.squashfs.back
     filesystem.squashfs.backup
     filesystem.squashfs.old
+    initrd.dir
+    initrd.tmp
     initrd.lz.bk
     initrd.lz.bak
     initrd.lz.back

@@ -4,9 +4,9 @@
 # @Author: Wang Hong
 # @Date:   2022-10-22 12:38:37
 # @Last Modified by:   Wang Hong
-# @Last Modified time: 2022-12-29 11:47:39
+# @Last Modified time: 2023-01-09 21:12:25
 
-Version=1.5.0
+Version=1.5.1
 ScriptDir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 WorkDir=$(pwd)
 LiveCDRoot=${WorkDir}
@@ -224,7 +224,7 @@ Mount() {
 
     local Desc Cmd
     Desc="${Options:+[${C_G}${Options}${C_CLR}] }${C_Y}${Source##*${WorkDir}/}${C_CLR} --> ${C_B}${DstDir##*${WorkDir}/}${C_CLR} ... "
-    Cmd="${Prefix} mount ${Options} ${Source} ${DstDir}"
+    Cmd="${Prefix} mount ${Options} \"${Source}\" \"${DstDir}\""
     Caller "MOUNT" "${Desc}" "${Cmd}"
 }
 
@@ -285,10 +285,10 @@ UnMount() {
     if eval "${Prefix}" umount --help | grep -iq "recursive"; then
         if eval "${Prefix}" mountpoint -q "${Directory}"; then
             Desc="[${C_G}Recursive${C_CLR}] ${C_Y}${Directory##*${WorkDir}/}${C_CLR} ... "
-            Cmd="${Prefix} umount -R ${Directory}"
+            Cmd="${Prefix} umount -R \"${Directory}\""
             if ! Caller "UMOUNT" "${Desc}" "${Cmd}"; then
                 Desc="[${C_Y}Retry${C_CLR}] ${Desc}"
-                Cmd="${Prefix} umount -Rl ${Directory}"
+                Cmd="${Prefix} umount -Rl \"${Directory}\""
                 Caller "UMOUNT" "${Desc}" "${Cmd}"
             fi
         fi
@@ -299,10 +299,10 @@ UnMount() {
         do
             if eval "${Prefix}" mountpoint -q "${dir}"; then
                 Desc="${C_Y}${dir##*${WorkDir}/}${C_CLR} ... "
-                Cmd="${Prefix} umount ${dir}"
+                Cmd="${Prefix} umount \"${dir}\""
                 if ! Caller "UMOUNT" "${Desc}" "${Cmd}"; then
                     Desc="[${C_Y}Retry${C_CLR}] ${Desc}"
-                    Cmd="${Prefix} umount -l ${Directory}"
+                    Cmd="${Prefix} umount -l \"${Directory}\""
                     Caller "UMOUNT" "${Desc}" "${Cmd}"
                 fi
             fi
@@ -483,11 +483,11 @@ MkSquashfs() {
     local Desc Cmd
     if [ -d "${RootDir}" ]; then
         Desc="Removing exist squashfs file [${C_H}${Squashfs##*${WorkDir}/}${C_CLR}] ... "
-        Cmd="rm -f ${Squashfs}"
+        Cmd="rm -f \"${Squashfs}\""
         Caller "REMOVE" "${Desc}" "${Cmd}"
     fi
     Desc="${C_B}${RootDir##*${WorkDir}/}${C_CLR} --> ${C_H}${Squashfs##*${WorkDir}/}${C_CLR} ... "
-    Cmd="mksquashfs ${RootDir} ${Squashfs} ${SQUASHFSARGS}"
+    Cmd="mksquashfs \"${RootDir}\" \"${Squashfs}\" ${SQUASHFSARGS}"
     Caller "MKSQUASH" "${Desc}" "${Cmd}"
 }
 
@@ -505,11 +505,11 @@ UnSquashfs() {
     local Desc Cmd
     if [ -d "${RootDir}" ]; then
         Desc="Removing exist RootDir [${C_B}${RootDir##*${WorkDir}/}${C_CLR}] ... "
-        Cmd="rm -rf ${RootDir}"
+        Cmd="rm -rf \"${RootDir}\""
         Caller "REMOVE" "${Desc}" "${Cmd}"
     fi
     Desc="${C_H}${Squashfs##*${WorkDir}/}${C_CLR} --> ${C_B}${RootDir##*${WorkDir}/}${C_CLR} ... "
-    Cmd="unsquashfs ${Squashfs}"
+    Cmd="unsquashfs \"${Squashfs}\""
     Caller "UNSQUASH" "${Desc}" "${Cmd}"
 }
 
@@ -532,7 +532,7 @@ GenFileSystemSize() {
 
     local Desc Cmd
     Desc="Calculating ${C_B}${RootDir##*${WorkDir}/}${C_CLR} Size ... "
-    Cmd="$(du -sx --block-size=1 "${RootDir}" | cut -f1) > ${FileSystemSize}"
+    Cmd="du -sx --block-size=1 \"${RootDir}\" | cut -f1 > \"${FileSystemSize}\""
     Caller "GEN SIZE" "${Desc}" "${Cmd}"
 }
 
@@ -554,8 +554,8 @@ GenFileSystemManifest() {
     [ -f "${FileSystemManifest}" ] && rm -f "${FileSystemManifest}"
 
     local Desc Cmd
-    Desc="Calculating ${C_H}${RootDir##*${WorkDir}/}${C_CLR} Manifest ... "
-    Cmd="chroot ${RootDir} dpkg-query -W > ${FileSystemManifest}"
+    Desc="Calculating ${C_B}${RootDir##*${WorkDir}/}${C_CLR} Manifest ... "
+    Cmd="chroot \"${RootDir}\" dpkg-query -W > \"${FileSystemManifest}\""
     Caller "GEN MANIFEST" "${Desc}" "${Cmd}"
 }
 
@@ -615,8 +615,8 @@ GenSums() {
 
     [ -f "${SUM_FILE}" ] && rm -f "${SUM_FILE}"
 
-    Desc="Calculating ${C_H}$(basename "$(pwd)")${C_CLR} ${SUM_TYPE_STR} ... "
-    Cmd="find . -type f -print0 | grep -vzE "\"${Exclude}\"" | xargs -0 ${SUM_TOOL} | tee ${SUM_FILE}"
+    Desc="Calculating ${C_B}$(basename "$(pwd)")${C_CLR} ${SUM_TYPE_STR} ... "
+    Cmd="find . -type f -print0 | grep -vzE "\"${Exclude}\"" | xargs -0 \"${SUM_TOOL}\" | tee \"${SUM_FILE}\""
     if ! Caller "GEN ${SUM_TYPE_STR}" "${Desc}" "${Cmd}"; then
         ReturnCode=1
     fi
@@ -771,16 +771,16 @@ MakeISO() {
     local Desc Cmd
     if [ -f "${ISOFile}" ]; then
         Desc="Removing exist ISO file [${C_B}$(basename "${ISOFile}")${C_CLR}] ... "
-        Cmd="rm -f ${ISOFile}"
+        Cmd="rm -f \"${ISOFile}\""
         Caller "REMOVE" "${Desc}" "${Cmd}"
     fi
     if [ -f "${ISOLogFile}" ]; then
         Desc="Removing exist ISO log file [${C_B}$(basename "${ISOLogFile}")${C_CLR}] ... "
-        Cmd="rm -f ${ISOLogFile}"
+        Cmd="rm -f \"${ISOLogFile}\""
         Caller "REMOVE" "${Desc}" "${Cmd}"
     fi
     Desc="${C_B}$(basename "$(pwd)")${C_CLR} --> ${C_H}$(basename "${ISOFile}")${C_CLR} ... "
-    Cmd="genisoimage ${ISOARGS} -output \"${ISOFile}\" \"${LiveCDRoot}\"; ${ISOLogFile}.tmp >> ${ISOLogFile}; rm -f ${ISOLogFile}.tmp"
+    Cmd="genisoimage ${ISOARGS} -output \"${ISOFile}\" \"${LiveCDRoot}\"; cat \"${ISOLogFile}.tmp\" >> \"${ISOLogFile}\"; rm -f \"${ISOLogFile}.tmp\""
     if ! Caller "MAKEISO" "${Desc}" "${Cmd}"; then
         ReturnCode=1
         cat "${ISOLogFile}"
@@ -806,7 +806,7 @@ MakeISO() {
     ISOMD5File=${ISOFileName}.md5sum
     pushd "${ISOFileDir}" > /dev/null || exit $?
 
-    Desc="${C_B}${ISOMD5File}${C_CLR} ... "
+    Desc="Calculating ${C_H}${ISOFileName}${C_CLR} MD5SUM ... "
     Cmd="md5sum \"${ISOFileName}\" > \"${ISOMD5File}\""
     if ! Caller "GEN ISO MD5SUM" "${Desc}" "${Cmd}"; then
         ReturnCode=1

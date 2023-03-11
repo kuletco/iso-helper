@@ -1,14 +1,19 @@
 iso-helper 帮助文件
 
-iso-helper 是用来辅助进行 kylin-desktop-v10-sp1 进行母盘定制的工具。
+iso-helper 是用来辅助进行 kylin-desktop-v10-sp1 进行 iso 定制的工具。
 其主要功能如下：
-1. 辅助快速释放/打包 live 系统的镜像文件（filesystem.squashfs）。
-2. 辅助快速生成/更新 live 系统大小文件（filesystem.size）。
-3. 辅助快速更新 iso 根目录中的 md5 校验文件（md5sum.txt）。
-3. 辅助快速更新 iso 根目录中的 sha256 校验文件（SHA256SUMS）。
-4. 辅助快速制作 iso 镜像并生成 iso 镜像的 md5 校验文件（xxxx.iso.md5sum）。
-5. 辅助准备 chroot 环境，自动为 chroot 环境挂载必备的内存文件系统（procfs、devtmpfs、sysfs、tmpfs等），并将主机根目录以只读方式挂载到 chroot 环境的 /host 目录中，方便进行文件的操作。
-6. 辅助清理 chroot 环境，主要是对第 5 点进行反向操作（卸载已挂载的文件系统）。
+1. 释放/打包 live 系统的镜像文件（filesystem.squashfs）。
+2. 生成/更新 live 系统大小文件（filesystem.size）。
+2. 生成/更新 live 系统包列表（filesystem.manifest）。
+3. 生成/更新 iso 根目录中的 md5 校验文件（md5sum.txt）。
+3. 生成/更新 iso 根目录中的 sha256 校验文件（SHA256SUMS）。
+4. 制作 iso 镜像。
+5. 生成 iso 镜像的 md5 校验文件（xxxx.iso.md5sum）。
+6. 生成 iso 镜像的 sha256 校验文件（xxxx.iso.sha256sum）。
+7. 准备 chroot 环境，
+  1. 自动为 chroot 环境挂载必备的内存文件系统（procfs、devtmpfs、sysfs、tmpfs等）
+  2. 并将主机根目录以只读方式挂载到 chroot 环境的 /host 目录中，方便进行文件的操作。
+8. 清理 chroot 环境，主要是对第 7 点进行反向操作（卸载已挂载的文件系统）。
 
 使用方法如下：
 iso-helper.sh <命令> [参数]

@@ -4,9 +4,9 @@
 # @Author: Wang Hong
 # @Date:   2022-10-22 12:38:37
 # @Last Modified by:   Wang Hong
-# @Last Modified time: 2023-01-09 21:12:25
+# @Last Modified time: 2023-03-11 15:13:04
 
-Version=1.5.1
+Version=1.5.2
 ScriptDir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 WorkDir=$(pwd)
 LiveCDRoot=${WorkDir}
@@ -731,10 +731,15 @@ MakeISO() {
     fi
 
     local ISOARGS=''
+    # ISOARGS="${ISOARGS:+${ISOARGS} }-check-oldnames"
+    ISOARGS="${ISOARGS:+${ISOARGS} }-sysid 'LINUX'"
     ISOARGS="${ISOARGS:+${ISOARGS} }-volid \"${ISOLabel}\""
     ISOARGS="${ISOARGS:+${ISOARGS} }-joliet"
     ISOARGS="${ISOARGS:+${ISOARGS} }-joliet-long"
     ISOARGS="${ISOARGS:+${ISOARGS} }-full-iso9660-filenames"
+    # ISOARGS="${ISOARGS:+${ISOARGS} }-max-iso9660-filenames"
+    ISOARGS="${ISOARGS:+${ISOARGS} }-untranslated-filenames"
+    # ISOARGS="${ISOARGS:+${ISOARGS} }-no-iso-translate"
     ISOARGS="${ISOARGS:+${ISOARGS} }-input-charset utf-8"
     ISOARGS="${ISOARGS:+${ISOARGS} }-cache-inodes"
     ISOARGS="${ISOARGS:+${ISOARGS} }-allow-multidot"
@@ -754,10 +759,11 @@ MakeISO() {
         ISOARGS="${ISOARGS:+${ISOARGS} }-no-emul-boot"
         ISOARGS="${ISOARGS:+${ISOARGS} }-efi-boot boot/grub/efi.img"
     fi
-    ISOARGS="${ISOARGS:+${ISOARGS} }-no-bak"
+    # ISOARGS="${ISOARGS:+${ISOARGS} }-no-bak"
     ISOARGS="${ISOARGS:+${ISOARGS} }-log-file ${ISOLogFile}.tmp"
+    # ISOARGS="${ISOARGS:+${ISOARGS} }-quiet"
     ISOARGS="${ISOARGS:+${ISOARGS} }-verbose"
-    # ISOARGS="${ISOARGS:+${ISOARGS} }--quiet"
+    # ISOARGS="${ISOARGS:+${ISOARGS} }-debug"
 
     # Backup Exclude files
     local UUID
@@ -799,16 +805,24 @@ MakeISO() {
         fi
     fi
 
-    # Calc ISO MD5 Sum
-    local ISOFileName ISOFileDir ISOMD5File
+    # Calc ISO Sum
+    local ISOFileName ISOFileDir ISOSumFile
     ISOFileName=$(basename "${ISOFile}")
     ISOFileDir=$(dirname "${ISOFile}")
-    ISOMD5File=${ISOFileName}.md5sum
+
     pushd "${ISOFileDir}" > /dev/null || exit $?
 
+    ISOSumFile=${ISOFileName}.md5sum
     Desc="Calculating ${C_H}${ISOFileName}${C_CLR} MD5SUM ... "
-    Cmd="md5sum \"${ISOFileName}\" > \"${ISOMD5File}\""
+    Cmd="md5sum \"${ISOFileName}\" > \"${ISOSumFile}\""
     if ! Caller "GEN ISO MD5SUM" "${Desc}" "${Cmd}"; then
+        ReturnCode=1
+    fi
+
+    ISOSumFile=${ISOFileName}.sha256sum
+    Desc="Calculating ${C_H}${ISOFileName}${C_CLR} SHA256SUM ... "
+    Cmd="sha256sum \"${ISOFileName}\" > \"${ISOSumFile}\""
+    if ! Caller "GEN ISO SHA256SUM" "${Desc}" "${Cmd}"; then
         ReturnCode=1
     fi
 

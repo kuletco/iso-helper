@@ -4,9 +4,11 @@
 # @Author: Wang Hong
 # @Date:   2022-10-22 12:38:37
 # @Last Modified by:   Wang Hong
-# @Last Modified time: 2023-03-11 15:13:04
+# @Last Modified time: 2023-04-07 17:29:03
 
-Version=1.5.2
+# set -e
+
+Version=1.5.3
 ScriptDir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 WorkDir=$(pwd)
 LiveCDRoot=${WorkDir}
@@ -60,6 +62,13 @@ C_FL="${C_R}FAILED${C_CLR}"
 C_WARN="${C_Y}WARNING${C_CLR}"
 C_ERROR="${C_R}ERROR${C_CLR}"
 
+# Cmd Hook Methods:
+# hook_mkdir() {
+#     echo "$@"
+#     /usr/bin/mkdir "$@"
+# }
+# alias mkdir='hook_mkdir'
+
 # Usage: Caller <Prefix> <Desc> <Cmd>
 Caller() {
     Usage="Caller <Prefix> <Desc> <Cmd>"
@@ -73,7 +82,7 @@ Caller() {
     shift 2
     local Cmd=$*
     local ReturnCode=0
-    local LogFile=.caller.log
+    local LogFile=/tmp/.caller.log
 
     echo -en "${C_HB}${Prefix}${C_CLR}: ${Desc}"
     if eval "${Cmd}" > "${LogFile}" 2>&1; then
@@ -174,9 +183,9 @@ GetTargetMountPoint() {
     echo "${MountedDir}"
 }
 
-# Usage: Mount [-c <RootDir>] [-t <Type> | -b] <Source> <DstDir>
+# Usage: Mount [-c <RootDir>] [-t <Type> | -b] <Source> <Target>
 Mount() {
-    local Usage="Usage: Mount [-c <RootDir>] [-t <Type> | -b] <Source> <DstDir>"
+    local Usage="Usage: Mount [-c <RootDir>] [-t <Type> | -b] <Source> <Target>"
     local Prefix=""
     local Options=""
     local RootDir=""
@@ -208,23 +217,28 @@ Mount() {
                     return 1
                 fi
                 local Source=$1
-                local DstDir=$2
+                local Target=$2
                 shift 2
                 ;;
         esac
     done
 
-    if [ -z "${Source}" ] || [ -z "${DstDir}" ]; then
+    if [ -z "${Source}" ] || [ -z "${Target}" ]; then
         echo -e "${Usage}" && return 1
     fi
 
-    if eval "${Prefix}" mountpoint -q "${DstDir}"; then
+    if eval "${Prefix}" mountpoint -q "${Target}"; then
+        return 0
+    fi
+
+    # When ${Target} dir is a symbolic link and point to ${Source} dir, skip this mount.
+    if [ -L "${Target}" ] && [ "$(realpath "${Target}")" = "${Source}" ]; then
         return 0
     fi
 
     local Desc Cmd
-    Desc="${Options:+[${C_G}${Options}${C_CLR}] }${C_Y}${Source##*${WorkDir}/}${C_CLR} --> ${C_B}${DstDir##*${WorkDir}/}${C_CLR} ... "
-    Cmd="${Prefix} mount ${Options} \"${Source}\" \"${DstDir}\""
+    Desc="${Options:+[${C_G}${Options}${C_CLR}] }${C_Y}${Source##*${WorkDir}/}${C_CLR} --> ${C_B}${Target##*${WorkDir}/}${C_CLR} ... "
+    Cmd="${Prefix} mount ${Options} \"${Source}\" \"${Target}\""
     Caller "MOUNT" "${Desc}" "${Cmd}"
 }
 
@@ -402,7 +416,12 @@ UnMountSystemEntries() {
 
     local RootDir=$1
 
-    for dir in host tmp run dev/pts dev sys proc
+    for dir in sys dev/pts dev proc
+    do
+        UnMount --chroot "${RootDir}" "/${dir}" || return 1
+    done
+
+    for dir in host tmp run
     do
         UnMount "${RootDir}/${dir}" || return 1
     done

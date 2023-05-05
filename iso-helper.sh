@@ -4,7 +4,7 @@
 # @Author: Wang Hong
 # @Date:   2022-10-22 12:38:37
 # @Last Modified by:   Wang Hong
-# @Last Modified time: 2023-04-07 17:29:03
+# @Last Modified time: 2023-05-05 10:04:06
 
 # set -e
 
@@ -72,7 +72,7 @@ C_ERROR="${C_R}ERROR${C_CLR}"
 # Usage: Caller <Prefix> <Desc> <Cmd>
 Caller() {
     Usage="Caller <Prefix> <Desc> <Cmd>"
-    if [ $# -lt 3 ]; then
+    if [ $# -lt 2 ] || [ -z "$1" ] || [ -z "$2" ]; then
         echo "${Usage}"
         return 1
     fi
@@ -142,7 +142,7 @@ GenUUID() {
 # Usage: IsTargetMounted <Target>
 IsTargetMounted() {
     local Usage="Usage: IsTargetMounted <Target>"
-    if [ $# -ne 1 ]; then
+    if [ $# -ne 1 ] || [ -z "$1" ]; then
         echo -e "${Usage}"
         return 1
     fi
@@ -161,7 +161,7 @@ IsTargetMounted() {
 # Usage: GetTargetMountPoint <Target>
 GetTargetMountPoint() {
     local Usage="Usage: GetTargetMountPoint <Target>"
-    if [ $# -ne 1 ]; then
+    if [ $# -ne 1 ] || [ -z "$1" ]; then
         echo -e "${Usage}"
         return 1
     fi
@@ -224,7 +224,8 @@ Mount() {
     done
 
     if [ -z "${Source}" ] || [ -z "${Target}" ]; then
-        echo -e "${Usage}" && return 1
+        echo -e "${Usage}"
+        return 1
     fi
 
     if eval "${Prefix}" mountpoint -q "${Target}"; then
@@ -245,7 +246,7 @@ Mount() {
 # Usage: ReleaseRes <RootDir>
 ReleaseRes() {
     local Usage="Usage: ReleaseRes <RootDir>"
-    if [ $# -ne 1 ]; then
+    if [ $# -ne 1 ] || [ -z "$1" ]; then
         echo -e "${Usage}"
         return 1
     fi
@@ -329,7 +330,7 @@ UnMount() {
 # Usage: MountCache <RootDir> <CacheDir>
 MountCache() {
     local Usage="Usage: MountCache <RootDir> <CacheDir>"
-    if [ $# -ne 2 ]; then
+    if [ $# -ne 2 ] || [ -z "$1" ] || [ -z "$2" ]; then
         echo -e "${Usage}"
         return 1
     fi
@@ -351,8 +352,8 @@ MountCache() {
 
 # Usage: UnMountCache <RootDir>
 UnMountCache() {
-    "Usage: UnMountCache <RootDir>"
-    if [ $# -ne 1 ]; then
+    local Usage="Usage: UnMountCache <RootDir>"
+    if [ $# -ne 1 ] || [ -z "$1" ]; then
         echo -e "${Usage}"
         return 1
     fi
@@ -372,7 +373,7 @@ UnMountCache() {
 # Usage: MountSystemEntries <RootDir>
 MountSystemEntries() {
     local Usage="Usage: MountSystemEntries <RootDir>"
-    if [ $# -ne 1 ]; then
+    if [ $# -ne 1 ] || [ -z "$1" ]; then
         echo -e "${Usage}"
         return 1
     fi
@@ -409,7 +410,7 @@ MountSystemEntries() {
 # Usage: UnMountSystemEntries <RootDir>
 UnMountSystemEntries() {
     local Usage="Usage: MountSystemEntries <RootDir>"
-    if [ $# -ne 1 ]; then
+    if [ $# -ne 1 ] || [ -z "$1" ]; then
         echo -e "${Usage}"
         return 1
     fi
@@ -434,7 +435,7 @@ UnMountSystemEntries() {
 # Usage: MountUserEntries <RootDir> <ExtPackageDir>
 MountUserEntries() {
     local Usage="Usage: MountUserEntries <RootDir> <ExtPackageDir>"
-    if [ $# -ne 1 ]; then
+    if [ $# -ne 1 ] || [ -z "$1" ]; then
         echo -e "${Usage}"
         return 1
     fi
@@ -459,7 +460,7 @@ MountUserEntries() {
 # Usage: UnMountUserEntries <RootDir>
 UnMountUserEntries() {
     local Usage="Usage: UnMountUserEntries <RootDir>"
-    if [ $# -ne 1 ]; then
+    if [ $# -ne 1 ] || [ -z "$1" ]; then
         echo -e "${Usage}"
         return 1
     fi
@@ -481,7 +482,7 @@ UnMountUserEntries() {
 # Usage: MkSquashfs <Squashfs File> <RootDir>
 MkSquashfs() {
     local Usage="Usage: MkSquashfs <Squashfs File> <RootDir>"
-    if [ $# -ne 2 ]; then
+    if [ $# -ne 2 ] || [ -z "$1" ] || [ -z "$2" ]; then
         echo -e "${Usage}"
         return 1
     fi
@@ -513,7 +514,7 @@ MkSquashfs() {
 # Usage: UnSquashfs <Squashfs File>
 UnSquashfs() {
     local Usage="Usage: UnSquashfs <Squashfs File>"
-    if [ $# -ne 1 ]; then
+    if [ $# -ne 1 ] || [ -z "$1" ]; then
         echo -e "${Usage}"
         return 1
     fi
@@ -535,7 +536,7 @@ UnSquashfs() {
 # Usage: GenFileSystemSize <FileSystem Size File> <RootDir>
 GenFileSystemSize() {
     local Usage="Usage: GenFileSystemSize <FileSystem Size File> <RootDir>"
-    if [ $# -ne 2 ]; then
+    if [ $# -ne 2 ] || [ -z "$1" ] || [ -z "$2" ]; then
         echo -e "${Usage}"
         return 1
     fi
@@ -558,7 +559,7 @@ GenFileSystemSize() {
 # Usage: GenFileSystemManifest <FileSystem Manifest File> <RootDir>
 GenFileSystemManifest() {
     local Usage="Usage: GenFileSystemManifest <FileSystem Manifest File> <RootDir>"
-    if [ $# -ne 2 ]; then
+    if [ $# -ne 2 ] || [ -z "$1" ] || [ -z "$2" ]; then
         echo -e "${Usage}"
         return 1
     fi
@@ -581,7 +582,7 @@ GenFileSystemManifest() {
 # Usage: GenSums <Sum Type: md5 | sha256> <Live CD Root Dir>
 GenSums() {
     local Usage="Usage: GenSums <Sum Type: md5 | sha256> <Live CD Root Dir>"
-    if [ $# -ne 2 ]; then
+    if [ $# -ne 2 ] || [ -z "$1" ] || [ -z "$2" ]; then
         echo -e "${Usage}"
         return 1
     fi
@@ -649,7 +650,7 @@ GenSums() {
 # Usage: PrepareExcludes <Backup|Restore> <ISO Root Dir> <UUID> <Exclude List>
 PrepareExcludes() {
     local Usage="Usage: PrepareExcludes <Backup|Restore> <ISO Root Dir> <UUID> <Exclude List>"
-    if [ $# -lt 3 ]; then
+    if [ $# -lt 3 ] || [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
         echo -e "${Usage}"
         return 1
     fi
@@ -719,7 +720,7 @@ PrepareExcludes() {
 # Usage: MakeISO <ISO File> <ISO Label> <Live CD Root>
 MakeISO() {
     local Usage="Usage: MakeISO <ISO File> <ISO Label> <Live CD Root>"
-    if [ $# -ne 3 ]; then
+    if [ $# -ne 3 ] || [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
         echo -e "${Usage}"
         return 1
     fi
@@ -859,7 +860,7 @@ MakeISO() {
 # Usage: UnpackISO <ISO File> <Target Dir>
 UnpackISO() {
     local Usage="Usage: UnpackISO <ISO File> <Target Dir>"
-    if [ $# -ne 2 ]; then
+    if [ $# -ne 2 ] || [ -z "$1" ] || [ -z "$2" ]; then
         echo -e "${Usage}"
         return 1
     fi
@@ -964,7 +965,7 @@ Usage() {
         fi
     fi
 
-    if [ "x${LOCALE%%.*}" = "xzh_CN" ]; then
+    if [ "${LOCALE%%.*}" = "zh_CN" ]; then
         Usage_zhCN
     else
         Usage_enUS

@@ -4,11 +4,11 @@
 # @Author: Wang Hong
 # @Date:   2022-10-22 12:38:37
 # @Last Modified by:   Wang Hong
-# @Last Modified time: 2023-05-05 10:04:06
+# @Last Modified time: 2023-05-05 10:05:04
 
 # set -e
 
-Version=1.5.3
+Version=1.5.4
 ScriptDir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 WorkDir=$(pwd)
 LiveCDRoot=${WorkDir}

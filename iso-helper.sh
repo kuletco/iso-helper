@@ -4,11 +4,11 @@
 # @Author: Wang Hong
 # @Date:   2022-10-22 12:38:37
 # @Last Modified by:   Wang Hong
-# @Last Modified time: 2023-05-05 10:05:04
+# @Last Modified time: 2023-10-31 01:01:58
 
 # set -e
 
-Version=1.5.4
+Version=1.5.5
 ScriptDir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 WorkDir=$(pwd)
 LiveCDRoot=${WorkDir}
@@ -923,16 +923,16 @@ Usage_enUS() {
     echo -e "$(basename "$0") <Command> [Arguments]"
     echo -e "Commands:"
     echo -e "  -v | version                                 : Show the version of the tool."
-    echo -e "  -m | m | mount | mount-system-entry          : Mount system dirs to \"${BASE_TARGET}\". Used to prepare chroot system env."
-    echo -e "  -u | u | umount | umount-system-entry        : Unmount virtual disk from \"${BASE_TARGET}\". Used to clear system env after exit chroot."
-    echo -e "  -M | M | mkfs | mksquashfs                   : Package \"squashfs-root\" to squashfs file: \"${BASE_SQUASH}\". Need work in the same folder of squashfs file."
-    echo -e "  -U | U | unfs | unsquashfs                   : Unpack \"squashfs-root\" from squashfs file: \"${BASE_SQUASH}\".Need work in the same folder of squashfs file."
-    echo -e "  -S | S | filesysteminfo                      : Calc \"squashfs-root\" size and manifest, then generate or update \"filesystem.size/filesystem.manifest\" file.Need work in the same folder of squashfs file."
-    echo -e "  -md5    | md5    <iso root>                  : Calc Files MD5 in ISO folder and generate or update \"md5sum.txt\" file."
-    echo -e "  -sha256 | sha256 <iso root>                  : Calc Files SHA256 in ISO folder and generate or update \"SHA256SUMS\" file."
-    echo -e "  -sum    | sum    <iso root>                  : Calc Files MD5 and SHA256 in ISO folder and generate or update \"md5sum.txt\" and \"SHA256SUMS\" file."
-    echo -e "  -iso    | iso    <file> <label> <iso root>   : Build ISO \"file\" with \"label\" from \"iso root\"."
-    echo -e "  -uniso  | uniso  <file> <target dir>         : Unpack ISO \"file\" to  \"target dir\"."
+    echo -e "  -m | m | mount | mount-system-entry          : Prepare chroot env. Mount system dirs to \"${BASE_TARGET}\"."
+    echo -e "  -u | u | umount | umount-system-entry        : Clear chroot env. Unmount system dirs from \"${BASE_TARGET}\"."
+    echo -e "  -M | M | mkfs | mksquashfs                   : Build image file \"${BASE_SQUASH}\"] from \"${BASE_TARGET}\". Need work in the same folder of \"${BASE_SQUASH}\" file."
+    echo -e "  -U | U | unfs | unsquashfs                   : Extract \"${BASE_TARGET}\" from image file \"${BASE_SQUASH}\".Need work in the same folder of \"${BASE_SQUASH}\" file."
+    echo -e "  -S | S | filesysteminfo                      : Update \"filesystem.size/filesystem.manifest\" for \"${BASE_TARGET}\". Need work in the same folder of \"${BASE_SQUASH}\" file."
+    echo -e "  -md5    | md5    <iso root>                  : Update or generate \"md5sum.txt\" in ISO root folder."
+    echo -e "  -sha256 | sha256 <iso root>                  : Update or generate \"SHA256SUMS\" in ISO root folder."
+    echo -e "  -sum    | sum    <iso root>                  : The same as -md5 -sha256."
+    echo -e "  -iso    | iso    <file> <label> <iso root>   : Build ISO \"file\" with \"label\" from \"ISO root folder\"."
+    echo -e "  -uniso  | uniso  <file> <target dir>         : Extract files to \"ISO dir\" in ISO file \"file\"."
 }
 
 Usage_zhCN() {
@@ -943,14 +943,14 @@ Usage_zhCN() {
     echo -e "$(basename "$0") <命令> [参数]"
     echo -e "命令:"
     echo -e "  -v | version                                 : 显示工具的版本。"
-    echo -e "  -m | m | mount | mount-system-entry          : 挂载系统目录到 \"${BASE_TARGET}\"。用来准备 chroot 的系统环境。"
-    echo -e "  -u | u | umount | umount-system-entry        : 从 \"${BASE_TARGET}\" 卸载系统目录。用来在退出 chroot 后清理系统环境。"
-    echo -e "  -M | M | mkfs | mksquashfs                   : 将 \"squashfs-root\" 文件系统打包为 squashfs 文件: \"${BASE_SQUASH}\"。需要在 squashfs 文件同级目录中操作。"
-    echo -e "  -U | U | unfs | unsquashfs                   : 从 squashfs 文件: \"${BASE_SQUASH}\" 中解包 \"squashfs-root\" 文件系统。需要在 squashfs 文件同级目录中操作。"
-    echo -e "  -S | S | filesysteminfo                      : 计算 \"squashfs-root\" 文件系统大小及包列表，并生成/更新 \"filesystem.size/filesystem.manifest\" 文件。需要在 squashfs 文件同级目录中操作。"
-    echo -e "  -md5    | md5    <iso root>                  : 计算 ISO 目录中文件的 MD5 校验并生成/更新 \"md5sum.txt\" 文件。"
-    echo -e "  -sha256 | sha256 <iso root>                  : 计算 ISO 目录中文件的 SHA256 校验并生成/更新 \"SHA256SUMS\" 文件。"
-    echo -e "  -sum    | sum    <iso root>                  : 计算 ISO 目录中文件的 MD5 和 SHA256 校验并生成/更新 \"md5sum.txt\" 和 \"SHA256SUMS\" 文件。"
+    echo -e "  -m | m | mount | mount-system-entry          : 准备 chroot 环境。将系统目录挂载到 \"${BASE_TARGET}\"。"
+    echo -e "  -u | u | umount | umount-system-entry        : 清理 chroot 环境。从 \"${BASE_TARGET}\" 卸载系统目录。"
+    echo -e "  -M | M | mkfs | mksquashfs                   : 从 \"${BASE_TARGET}\" 目录制作镜像文件 \"${BASE_SQUASH}\"。需要在 \"${BASE_SQUASH}\" 文件同级目录中操作。"
+    echo -e "  -U | U | unfs | unsquashfs                   : 将 \"${BASE_SQUASH}\" 文件解包至 \"${BASE_TARGET}\"。需要在 \"${BASE_SQUASH}\" 文件同级目录中操作。"
+    echo -e "  -S | S | filesysteminfo                      : 从 \"${BASE_TARGET}\" 更新/生成 \"filesystem.size/filesystem.manifest\" 文件。需要在 \"${BASE_SQUASH}\" 文件同级目录中操作。"
+    echo -e "  -md5    | md5    <iso root>                  : 更新/生成 ISO 根目录中 \"md5sum.txt\" 文件。"
+    echo -e "  -sha256 | sha256 <iso root>                  : 更新/生成 ISO 根目录中 \"SHA256SUMS\" 文件。"
+    echo -e "  -sum    | sum    <iso root>                  : 等同于 -md5 -sha256。"
     echo -e "  -iso    | iso    <file> <label> <iso root>   : 从 \"iso root\" 构建标签为 \"label\" 的 ISO 文件 \"file\"。"
     echo -e "  -uniso  | uniso  <file> <target dir>         : 将 ISO 文件 \"file\" 释放到目标文件夹 \"target dir\"。"
 }

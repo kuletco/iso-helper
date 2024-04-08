@@ -409,7 +409,7 @@ MountSystemEntries() {
 
 # Usage: UnMountSystemEntries <RootDir>
 UnMountSystemEntries() {
-    local Usage="Usage: MountSystemEntries <RootDir>"
+    local Usage="Usage: UnMountSystemEntries <RootDir>"
     if [ $# -ne 1 ] || [ -z "$1" ]; then
         echo -e "${Usage}"
         return 1

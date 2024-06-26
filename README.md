@@ -30,6 +30,8 @@ iso-helper 是用来辅助进行 kylin-desktop-v10-sp1 进行 iso 定制的工�
 
 * 清理 chroot 环境，主要是对第 7 点进行反向操作（卸载已挂载的文件系统）。
 
+* 生成 iso 信息文件，包括镜像内软件包+版本的列表，及一些定制内容。
+
 
 
 ### **使用方法如下：**
@@ -40,19 +42,17 @@ iso-helper 是用来辅助进行 kylin-desktop-v10-sp1 进行 iso 定制的工�
 iso-helper.sh <命令> [参数]
 命令:
   -v | version                                 : 显示工具的版本。
-  -m | m | mount | mount-system-entry          : 准备 chroot 环境。将系统目录挂载到 ["squashfs-root"]。
-  -u | u | umount | umount-system-entry        : 清理 chroot 环境。从 ["squashfs-root"] 卸载系统目录。
-  -M | M | mkfs | mksquashfs                   : 从 "squashfs-root" 目录制作镜像文件 "filesystem.squashfs"。
-                                                 需要在 ["filesystem.squashfs"] 文件同级目录中操作。
-  -U | U | unfs | unsquashfs                   : 将 ["filesystem.squashfs"] 文件解包至 ["squashfs-root"]。
-                                                 需要在 ["filesystem.squashfs"] 文件同级目录中操作。
-  -S | S | filesysteminfo                      : 更新/生成 "filesystem.size/filesystem.manifest"。
-                                                 需要在 ["filesystem.squashfs"] 文件同级目录中操作。
-  -md5    | md5    <iso root>                  : 更新/生成 ISO 根目录中 "md5sum.txt" 文件。
-  -sha256 | sha256 <iso root>                  : 更新/生成 ISO 根目录中 "SHA256SUMS" 文件。
-  -sum    | sum    <iso root>                  : 等同于 -md5 -sha256。
-  -iso    | iso    <file> <label> <iso root>   : 从 "iso root" 构建标签为 "label" 的 ISO 文件 "file"。
-  -uniso  | uniso  <file> <target dir>         : 将 ISO 文件 "file" 释放到目标文件夹 "target dir"。
+  -m | m | mount | mount-system-entry          : 准备 chroot 环境。将系统目录挂载到 "squashfs-root"。
+  -u | u | umount | umount-system-entry        : 清理 chroot 环境。从 "squashfs-root" 卸载系统目录。
+  -M | M | mkfs | mksquashfs                   : 从 "squashfs-root" 目录制作镜像文件 "filesystem.squashfs"。需要在 "filesystem.squashfs" 文件同级目录中操作。
+  -U | U | unfs | unsquashfs                   : 将 "filesystem.squashfs" 文件解包至 "squashfs-root"。需要在 "filesystem.squashfs" 文件同级目录中操作。
+  -S | S | filesysteminfo                      : 从 "squashfs-root" 更新/生成 "filesystem.size/filesystem.manifest" 文件。需要在 "filesystem.squashfs" 文件同级目录中操作。
+  -md5     | md5    <iso root>                 : 更新/生成 ISO 根目录中 "md5sum.txt" 文件。
+  -sha256  | sha256 <iso root>                 : 更新/生成 ISO 根目录中 "SHA256SUMS" 文件。
+  -sum     | sum    <iso root>                 : 等同于 -md5 -sha256。
+  -iso     | iso    <file> <label> <iso root>  : 从 "iso root" 构建标签为 "label" 的 ISO 文件 "file"。
+  -uniso   | uniso  <file> <target dir>        : 将 ISO 文件 "file" 释放到目标文件夹 "target dir"。
+  -info    | info  <file>                      : 生成 ISO 信息文件 "<file>.info".
 ```
 
 

@@ -4,12 +4,13 @@
 # @Author: Wang Hong
 # @Date:   2022-10-22 12:38:37
 # @Last Modified by:   Wang Hong
-# @Last Modified time: 2023-10-31 01:01:58
+# @Last Modified time: 2024-06-26 09:30:49
 
 # set -e
 
-Version=1.5.5
-ScriptDir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+Version=1.5.6
+
+ExecDir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 WorkDir=$(pwd)
 LiveCDRoot=${WorkDir}
 RootDir=${WorkDir}/squashfs-root
@@ -717,6 +718,87 @@ PrepareExcludes() {
     esac
 }
 
+# Usage: GetDebFileInfo <Section Title> <Live CD Root>
+function GetDebFileInfo() {
+    local Usage="Usage: GetDebFileInfo <Section Title> <Live CD Root>"
+    if [ $# -ne 2 ] || [ -z "$1" ] || [ -z "$2" ]; then
+        echo -e "${Usage}"
+        return 1
+    fi
+
+    local SectionTitle=$1
+    local LiveCDRoot=$2
+
+    echo "##### ${SectionTitle} #####"
+    if [ -d "${LiveCDRoot}" ]; then
+        if ls "${LiveCDRoot}"/*.deb >/dev/null 2>&1; then
+            find "${LiveCDRoot}" -type f -name "*.deb"
+            find "${LiveCDRoot}" -type f -name "*.deb" | while read -r line; do
+                echo "##### ${SectionTitle}.$(basename "${line}") #####"
+                dpkg-deb --info "${line}" | grep -E "Package:|Version:|Architecture:|Description:"
+            done
+        fi
+    fi
+}
+
+# Usage: GenerateISOInfo <ISO File>
+function GenerateISOInfo() {
+    local Usage="Usage: GenerateISOInfo <ISO File>"
+    if [ $# -ne 1 ] || [ -z "$1" ]; then
+        echo -e "${Usage}"
+        return 1
+    fi
+
+    local ISOFile=$1
+    local ISOBaseName=${ISOFile%.iso}
+    local ISOInfoFile=${ISOBaseName}.info
+    local ISOMountDir=${ISOBaseName}
+    local FSMountDir=${ISOBaseName}.filesystem.squashfs
+
+    rm -f "${ISOInfoFile}"
+
+    if [ -f "${ISOFile}" ]; then
+        echo "##### ${ISOFile} #####" >> "${ISOInfoFile}"
+
+        if test -d "${FSMountDir}"; then
+            mountpoint -q "${FSMountDir}" && umount "${FSMountDir}"
+        fi
+        if test -d "${ISOMountDir}"; then
+            mountpoint -q "${ISOMountDir}" && umount "${ISOMountDir}"
+        fi
+
+        mkdir -p "${ISOMountDir}" "${FSMountDir}"
+        mount -o loop,ro "${ISOFile}" "${ISOMountDir}"
+        mount "${ISOMountDir}/casper/filesystem.squashfs" "${FSMountDir}"
+
+        {
+            echo "##### cdrom.casper.filesystem.manifest #####"
+            cat "${ISOMountDir}/casper/filesystem.manifest"
+            
+            echo "##### cdrom.casper.filesystem.manifest-remove #####"
+            cat "${ISOMountDir}/casper/filesystem.manifest-remove"
+
+            GetDebFileInfo "cdrom.casper.filesystem.squashfs.opt.third" "${FSMountDir}/opt/third"
+            GetDebFileInfo "cdrom.casper.filesystem.squashfs.opt.kscset" "${FSMountDir}/opt/kscset"
+            GetDebFileInfo "cdrom.citrix" "${ISOMountDir}/citrix"
+            GetDebFileInfo "cdrom.sdm" "${ISOMountDir}/sdm"
+            GetDebFileInfo "cdrom.ecp" "${ISOMountDir}/ecp"
+            GetDebFileInfo "cdrom.ecp" "${ISOMountDir}/ECIP_ALL_1101"
+            GetDebFileInfo "cdrom.mail" "${ISOMountDir}/mail"
+            GetDebFileInfo "cdrom.rhtx" "${ISOMountDir}/rhtx"
+            GetDebFileInfo "cdrom.sogou" "${ISOMountDir}/sogou"
+            GetDebFileInfo "cdrom.kernel" "${ISOMountDir}/kernel"
+
+            echo "##### cdrom.kylin-post-actions #####"
+            cat "${ISOMountDir}/.kylin-post-actions"
+        } | sed -e "s/${ISOMountDir}\//iso\//g" -e "s/${ISOMountDir}\./iso\./g" >> "${ISOInfoFile}"
+
+        umount "${FSMountDir}"
+        umount "${ISOMountDir}"
+        rm -rf "${ISOMountDir}" "${FSMountDir}"
+    fi
+}
+
 # Usage: MakeISO <ISO File> <ISO Label> <Live CD Root>
 MakeISO() {
     local Usage="Usage: MakeISO <ISO File> <ISO Label> <Live CD Root>"
@@ -928,11 +1010,12 @@ Usage_enUS() {
     echo -e "  -M | M | mkfs | mksquashfs                   : Build image file \"${BASE_SQUASH}\"] from \"${BASE_TARGET}\". Need work in the same folder of \"${BASE_SQUASH}\" file."
     echo -e "  -U | U | unfs | unsquashfs                   : Extract \"${BASE_TARGET}\" from image file \"${BASE_SQUASH}\".Need work in the same folder of \"${BASE_SQUASH}\" file."
     echo -e "  -S | S | filesysteminfo                      : Update \"filesystem.size/filesystem.manifest\" for \"${BASE_TARGET}\". Need work in the same folder of \"${BASE_SQUASH}\" file."
-    echo -e "  -md5    | md5    <iso root>                  : Update or generate \"md5sum.txt\" in ISO root folder."
-    echo -e "  -sha256 | sha256 <iso root>                  : Update or generate \"SHA256SUMS\" in ISO root folder."
-    echo -e "  -sum    | sum    <iso root>                  : The same as -md5 -sha256."
-    echo -e "  -iso    | iso    <file> <label> <iso root>   : Build ISO \"file\" with \"label\" from \"ISO root folder\"."
-    echo -e "  -uniso  | uniso  <file> <target dir>         : Extract files to \"ISO dir\" in ISO file \"file\"."
+    echo -e "  -md5     | md5    <iso root>                 : Update or generate \"md5sum.txt\" in ISO root folder."
+    echo -e "  -sha256  | sha256 <iso root>                 : Update or generate \"SHA256SUMS\" in ISO root folder."
+    echo -e "  -sum     | sum    <iso root>                 : The same as -md5 -sha256."
+    echo -e "  -iso     | iso    <file> <label> <iso root>  : Build ISO \"file\" with \"label\" from \"ISO root folder\"."
+    echo -e "  -uniso   | uniso  <file> <target dir>        : Extract files to \"ISO dir\" in ISO file \"file\"."
+    echo -e "  -info    | info  <file>                      : Generate ISO Info to \"<file>.info\"."
 }
 
 Usage_zhCN() {
@@ -948,11 +1031,12 @@ Usage_zhCN() {
     echo -e "  -M | M | mkfs | mksquashfs                   : 从 \"${BASE_TARGET}\" 目录制作镜像文件 \"${BASE_SQUASH}\"。需要在 \"${BASE_SQUASH}\" 文件同级目录中操作。"
     echo -e "  -U | U | unfs | unsquashfs                   : 将 \"${BASE_SQUASH}\" 文件解包至 \"${BASE_TARGET}\"。需要在 \"${BASE_SQUASH}\" 文件同级目录中操作。"
     echo -e "  -S | S | filesysteminfo                      : 从 \"${BASE_TARGET}\" 更新/生成 \"filesystem.size/filesystem.manifest\" 文件。需要在 \"${BASE_SQUASH}\" 文件同级目录中操作。"
-    echo -e "  -md5    | md5    <iso root>                  : 更新/生成 ISO 根目录中 \"md5sum.txt\" 文件。"
-    echo -e "  -sha256 | sha256 <iso root>                  : 更新/生成 ISO 根目录中 \"SHA256SUMS\" 文件。"
-    echo -e "  -sum    | sum    <iso root>                  : 等同于 -md5 -sha256。"
-    echo -e "  -iso    | iso    <file> <label> <iso root>   : 从 \"iso root\" 构建标签为 \"label\" 的 ISO 文件 \"file\"。"
-    echo -e "  -uniso  | uniso  <file> <target dir>         : 将 ISO 文件 \"file\" 释放到目标文件夹 \"target dir\"。"
+    echo -e "  -md5     | md5    <iso root>                 : 更新/生成 ISO 根目录中 \"md5sum.txt\" 文件。"
+    echo -e "  -sha256  | sha256 <iso root>                 : 更新/生成 ISO 根目录中 \"SHA256SUMS\" 文件。"
+    echo -e "  -sum     | sum    <iso root>                 : 等同于 -md5 -sha256。"
+    echo -e "  -iso     | iso    <file> <label> <iso root>  : 从 \"iso root\" 构建标签为 \"label\" 的 ISO 文件 \"file\"。"
+    echo -e "  -uniso   | uniso  <file> <target dir>        : 将 ISO 文件 \"file\" 释放到目标文件夹 \"target dir\"。"
+    echo -e "  -info    | info  <file>                      : 生成 ISO 信息文件 \"<file>.info\"."
 }
 
 Usage() {
@@ -983,52 +1067,52 @@ while [ $# -ne 0 ]
 do
     case $1 in
         -m|m|mount|mount-system-entry)
-            shift
+            shift 1
             CheckPrivilege || exit $?
             MountSystemEntries "${RootDir}" || exit $?
             ;;
         -u|u|umount|umount-system-entry)
-            shift
+            shift 1
             CheckPrivilege || exit $?
             ReleaseRes "${RootDir}" || exit $?
             UnMountSystemEntries "${RootDir}" || exit $?
             ;;
         -M|M|mkfs|mksquashfs)
-            shift
+            shift 1
             CheckPrivilege || exit $?
             MkSquashfs "${SquashfsFile}" "${RootDir}" || exit $?
             ;;
         -U|U|unfs|unsquashfs)
-            shift
+            shift 1
             CheckPrivilege || exit $?
             UnSquashfs "${SquashfsFile}" || exit $?
             ;;
         -S|S|filesysteminfo)
-            shift
+            shift 1
             GenFileSystemSize "${FileSystemSize}" "${RootDir}" || exit $?
             GenFileSystemManifest "${FileSystemManifest}" "${RootDir}" || exit $?
             ;;
         -md5|md5|md5sum)
-            shift
+            shift 1
             LiveCDRoot=$1
-            shift
+            shift 1
             GenSums md5 "${LiveCDRoot}" || exit $?
             ;;
         -sha256|sha256|sha256sum)
-            shift
+            shift 1
             LiveCDRoot=$1
-            shift
+            shift 1
             GenSums sha256 "${LiveCDRoot}" || exit $?
             ;;
         -sum|sum)
-            shift
+            shift 1
             LiveCDRoot=$1
-            shift
+            shift 1
             GenSums md5 "${LiveCDRoot}" || exit $?
             GenSums sha256 "${LiveCDRoot}" || exit $?
             ;;
         -iso|iso)
-            shift
+            shift 1
             ISOFile=$1
             ISOLabel=$2
             LiveCDRoot=$3
@@ -1036,14 +1120,20 @@ do
             MakeISO "${ISOFile}" "${ISOLabel}" "${LiveCDRoot}" || exit $?
             ;;
         -uniso|uniso)
-            shift
+            shift 1
             ISOFile=$1
             LiveCDRoot=$2
             shift 2
             UnpackISO "${ISOFile}" "${LiveCDRoot}" || exit $?
             ;;
+        -info|info)
+            shift 1
+            ISOFile=$1
+            shift 1
+            GenerateISOInfo "${ISOFile}" || exit $?
+            ;;
         -v|v|-version|version)
-            shift
+            shift 1
             echo -e "$(basename "$0") Version: ${Version}"
             exit 0
             ;;

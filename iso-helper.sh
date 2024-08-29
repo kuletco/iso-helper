@@ -4,7 +4,7 @@
 # @Author: Wang Hong
 # @Date:   2022-10-22 12:38:37
 # @Last Modified by:   Wang Hong
-# @Last Modified time: 2024-08-29 10:38:54
+# @Last Modified time: 2024-08-29 10:39:38
 
 # set -e
 
@@ -867,7 +867,7 @@ MakeISO() {
     # Backup Exclude files
     local UUID
     UUID=$(GenUUID)
-    PrepareExcludes Backup ${LiveCDRoot} "${UUID}" "${ISOExcludeList[@]}"
+    PrepareExcludes Backup "${LiveCDRoot}" "${UUID}" "${ISOExcludeList[@]}"
 
     echo "ISO Build Command:" > "${ISOLogFile}"
     # eval echo "genisoimage ${ISOARGS} -output \"${ISOFile}\" \"${LiveCDRoot}\" >> ${ISOLogFile}"
@@ -928,7 +928,7 @@ MakeISO() {
     popd > /dev/null || exit $?
 
     # Restore Exclude files
-    PrepareExcludes Restore ${LiveCDRoot} "${UUID}" "${ISOExcludeList[@]}"
+    PrepareExcludes Restore "${LiveCDRoot}" "${UUID}" "${ISOExcludeList[@]}"
 
     if pushd >/dev/null 2>&1; then
         popd >/dev/null || return $?

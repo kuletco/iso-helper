@@ -676,10 +676,9 @@ PrepareExcludes() {
             do
                 find "${ISORootDirAbs}" -name "${Exclude}" | while read -r ItemAbs;
                 do
-                    ItemAbs=${ItemAbs}
-                    Item=${ItemAbs#*${ISORootDirAbs}/}
+                    Item=${ItemAbs#*"${ISORootDirAbs}"/}
                     ItemDirAbs=$(dirname "${ItemAbs}")
-                    ItemDir=${ItemDirAbs#*${ISORootDirAbs}/}
+                    ItemDir=${ItemDirAbs#*"${ISORootDirAbs}"/}
                     TargetDir=${BackupDirAbs}/${ItemDir}
 
                     echo -e "Found Exclude File: [${C_B}${Item}${C_CLR}], Backup it to [${C_HY}${UUID}${C_CLR}]"
@@ -694,10 +693,9 @@ PrepareExcludes() {
                 do
                     find "${BackupDirAbs}" -name "${Exclude}" | while read -r ItemAbs;
                     do
-                        ItemAbs=${ItemAbs}
-                        Item=${ItemAbs#*${BackupDirAbs}/}
+                        Item=${ItemAbs#*"${BackupDirAbs}"/}
                         ItemDirAbs=$(dirname "${ItemAbs}")
-                        ItemDir=${ItemDirAbs#*${BackupDirAbs}/}
+                        ItemDir=${ItemDirAbs#*"${BackupDirAbs}"/}
                         TargetDir=${ISORootDirAbs}/${ItemDir}
                         
                         echo -e "Found Exclude File Backup: [${C_HY}${UUID}${C_CLR}]: [${C_B}${Item}${C_CLR}]"

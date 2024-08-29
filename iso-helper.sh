@@ -4,11 +4,11 @@
 # @Author: Wang Hong
 # @Date:   2022-10-22 12:38:37
 # @Last Modified by:   Wang Hong
-# @Last Modified time: 2024-06-26 09:30:49
+# @Last Modified time: 2024-08-29 10:29:09
 
 # set -e
 
-Version=1.5.6
+Version=1.5.7
 
 ExecDir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 WorkDir=$(pwd)
@@ -606,9 +606,7 @@ GenSums() {
     fi
 
     # Push ISO Root to build
-    if [ "x${LiveCDRoot}" != "x." ]; then
-        pushd "${LiveCDRoot}" >/dev/null || exit $?
-    fi
+    pushd "${LiveCDRoot}" >/dev/null || exit $?
 
     local Exclude=''
     Exclude="${Exclude:+${Exclude}|}isolinux/boot.cat"
@@ -623,12 +621,12 @@ GenSums() {
         md5|md5sum)
             SUM_TYPE_STR="MD5SUM"
             SUM_TOOL=md5sum
-            SUM_FILE="${LiveCDRoot}/md5sum.txt"
+            SUM_FILE="md5sum.txt"
         ;;
         sha256|sha256sum)
             SUM_TYPE_STR="SHA256SUM"
             SUM_TOOL=sha256sum
-            SUM_FILE="${LiveCDRoot}/SHA256SUMS"
+            SUM_FILE="SHA256SUMS"
         ;;
         *)
         ;;
@@ -642,9 +640,8 @@ GenSums() {
         ReturnCode=1
     fi
 
-    if [ "x${LiveCDRoot}" != "x." ]; then
-        popd >/dev/null || return $?
-    fi
+    popd >/dev/null || return $?
+
     return ${ReturnCode}
 }
 

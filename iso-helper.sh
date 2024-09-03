@@ -4,7 +4,7 @@
 # @Author: Wang Hong
 # @Date:   2022-10-22 12:38:37
 # @Last Modified by:   Wang Hong
-# @Last Modified time: 2024-08-29 10:39:38
+# @Last Modified time: 2024-09-03 10:19:43
 
 # set -e
 
@@ -726,13 +726,10 @@ function GetDebFileInfo() {
 
     echo "##### ${SectionTitle} #####"
     if [ -d "${LiveCDRoot}" ]; then
-        if ls "${LiveCDRoot}"/*.deb >/dev/null 2>&1; then
-            find "${LiveCDRoot}" -type f -name "*.deb"
-            find "${LiveCDRoot}" -type f -name "*.deb" | while read -r line; do
-                echo "##### ${SectionTitle}.$(basename "${line}") #####"
-                dpkg-deb --info "${line}" | grep -E "Package:|Version:|Architecture:|Description:"
-            done
-        fi
+        find "${LiveCDRoot}" -type f -name "*.deb" | while read -r line; do
+            echo "##### ${SectionTitle}.$(basename "${line}") #####"
+            dpkg-deb --info "${line}" | grep -E "Package:|Version:|Architecture:|Description:"
+        done
     fi
 }
 
@@ -749,6 +746,12 @@ function GenerateISOInfo() {
     local ISOInfoFile=${ISOBaseName}.info
     local ISOMountDir=${ISOBaseName}
     local FSMountDir=${ISOBaseName}.filesystem.squashfs
+    local User
+    if [ -n "${SUDO_USER}" ]; then
+        User=${SUDO_USER}
+    else
+        User=${USER}
+    fi
 
     rm -f "${ISOInfoFile}"
 
@@ -775,6 +778,7 @@ function GenerateISOInfo() {
 
             GetDebFileInfo "cdrom.casper.filesystem.squashfs.opt.third" "${FSMountDir}/opt/third"
             GetDebFileInfo "cdrom.casper.filesystem.squashfs.opt.kscset" "${FSMountDir}/opt/kscset"
+            GetDebFileInfo "cdrom.third-party" "${ISOMountDir}/third-party"
             GetDebFileInfo "cdrom.citrix" "${ISOMountDir}/citrix"
             GetDebFileInfo "cdrom.sdm" "${ISOMountDir}/sdm"
             GetDebFileInfo "cdrom.ecp" "${ISOMountDir}/ecp"
@@ -791,6 +795,8 @@ function GenerateISOInfo() {
         umount "${FSMountDir}"
         umount "${ISOMountDir}"
         rm -rf "${ISOMountDir}" "${FSMountDir}"
+
+        chown "${User}":"${User}" "${ISOInfoFile}"
     fi
 }
 
@@ -807,6 +813,12 @@ MakeISO() {
     local LiveCDRoot=$3
     local ISOLogFile=${ISOFile}.log
     local ReturnCode=0
+    local User
+    if [ -n "${SUDO_USER}" ]; then
+        User=${SUDO_USER}
+    else
+        User=${USER}
+    fi
     
     if [ -z "${LiveCDRoot}" ]; then
         echo -e "Live CD root [${LiveCDRoot}] is empty!"
@@ -901,6 +913,7 @@ MakeISO() {
             ReturnCode=1
         fi
     fi
+    chown "${User}":"${User}" "${ISOFile}"
 
     # Calc ISO Sum
     local ISOFileName ISOFileDir ISOSumFile
@@ -915,6 +928,7 @@ MakeISO() {
     if ! Caller "GEN ISO MD5SUM" "${Desc}" "${Cmd}"; then
         ReturnCode=1
     fi
+    chown "${User}":"${User}" "${ISOSumFile}"
 
     ISOSumFile=${ISOFileName}.sha256sum
     Desc="Calculating ${C_H}${ISOFileName}${C_CLR} SHA256SUM ... "
@@ -922,6 +936,7 @@ MakeISO() {
     if ! Caller "GEN ISO SHA256SUM" "${Desc}" "${Cmd}"; then
         ReturnCode=1
     fi
+    chown "${User}":"${User}" "${ISOSumFile}"
 
     popd > /dev/null || exit $?
 

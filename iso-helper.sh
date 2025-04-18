@@ -115,7 +115,7 @@ CheckQemuBinfmtSupport() {
 }
 
 CheckBuildEnvironment() {
-    Utils=(blkid lsblk losetup parted mkfs.ext4 mkfs.fat mksquashfs findmnt)
+    Utils=(fuseiso fusermount blkid lsblk losetup parted mkfs.ext4 mkfs.fat mksquashfs findmnt)
 
     for Util in "${Utils[@]}"; do
         if ! which "${Util}" >/dev/null 2>&1; then
@@ -981,7 +981,7 @@ UnpackISO() {
 
     local Desc Cmd
     Desc="${C_H}${ISOFile}${C_CLR} --> ${C_Y}${ISOMount}${C_CLR} ... "
-    Cmd="mount -r \"${ISOFile}\" \"${ISOMount}\""
+    Cmd="fuseiso \"${ISOFile}\" \"${ISOMount}\""
     if ! Caller "MOUNTISO" "${Desc}" "${Cmd}"; then
         return $?
     fi
@@ -993,7 +993,7 @@ UnpackISO() {
     fi
 
     Desc="${C_Y}${ISOMount}${C_CLR} ... "
-    Cmd="umount \"${ISOMount}\""
+    Cmd="fusermount -u \"${ISOMount}\""
     if ! Caller "UMOUNTISO" "${Desc}" "${Cmd}"; then
         return $?
     fi

@@ -240,3 +240,8 @@ fabric.properties
 .idea
 
 *.help
+
+# Packages
+*.gz
+*.tar
+*.zip

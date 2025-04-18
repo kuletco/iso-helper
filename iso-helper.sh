@@ -901,7 +901,7 @@ MakeISO() {
         cat "${ISOLogFile}"
     fi
 
-    if [ -f "${LiveCDRoot}/isolinux/isolinux.bin" ]; then
+    if which isohybrid > /dev/null && [ -f "${LiveCDRoot}/isolinux/isolinux.bin" ]; then
         local ISOHYBRID=""
         ISOHYBRID="${ISOHYBRID:+${ISOHYBRID} }--uefi"
         ISOHYBRID="${ISOHYBRID:+${ISOHYBRID} }--partok"

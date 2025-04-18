@@ -8,7 +8,7 @@
 
 # set -e
 
-Version=1.5.8
+Version=1.5.9
 
 ExecDir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 WorkDir=$(pwd)

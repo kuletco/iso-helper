@@ -398,6 +398,9 @@ MountSystemEntries() {
             mkdir -p "${RootDir}/host" || return 1
             findmnt -es --real -n -t "ext2,ext3,ext4,vfat,ntfs,xfs,btrfs" | awk '{print $1}' | while read -r MountPoint
             do
+                # Skip unused folder binding: /boot;/boot/efi;/var;/backup;
+                (echo "${MountPoint}" | grep -q -E "\/boot|\/boot\/efi|\/var|\/backup") && continue
+                mkdir -p "${RootDir}/host${MountPoint%/}"
                 Mount --readonly --bind "${MountPoint}" "${RootDir}/host${MountPoint%/}"
             done
         fi

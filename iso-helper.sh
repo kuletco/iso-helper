@@ -192,8 +192,7 @@ Mount() {
     local Options=""
     local RootDir=""
 
-    while [ $# -ne 0 ]
-    do
+    while [ $# -ne 0 ]; do
         case $1 in
             -c|--chroot)
                 RootDir=$2
@@ -259,8 +258,7 @@ ReleaseRes() {
     # Stop All Process first!!! TODO: Test Code!
     pushd "${RootDir}/.." > /dev/null || exit $?
     read -ra ResUsers <<< "$(fuser -a "$(basename "${RootDir}")" 2>/dev/null | grep "$(basename "${RootDir}")" | awk -F':' '{print $2}')"
-    for ResUser in "${ResUsers[@]}";
-    do
+    for ResUser in "${ResUsers[@]}"; do
         local PID=${ResUser:0:-1}
         pgrep "${PID}" > /dev/null && kill -9 "${PID}"
     done
@@ -274,8 +272,7 @@ UnMount() {
     local RootDir=""
     local Directory=""
 
-    while [ $# -ne 0 ]
-    do
+    while [ $# -ne 0 ]; do
         case $1 in
             -c|--chroot)
                 RootDir=$2
@@ -312,8 +309,7 @@ UnMount() {
     else
         dirlist=$(eval "${Prefix}" cat /proc/mounts | grep "${Directory}")
         [ -n "${dirlist}" ] && return 0
-        for dir in ${dirlist}
-        do
+        for dir in ${dirlist}; do
             if eval "${Prefix}" mountpoint -q "${dir}"; then
                 Desc="${C_Y}${dir##*${WorkDir}/}${C_CLR} ... "
                 Cmd="${Prefix} umount \"${dir}\""
@@ -364,8 +360,7 @@ UnMountCache() {
     local RootAptCache=${RootDir}/var/cache/apt
     local RootAptLists=${RootDir}/var/lib/apt/lists
 
-    for dir in ${RootAptCache} ${RootAptLists}
-    do
+    for dir in ${RootAptCache} ${RootAptLists}; do
         UnMount "${dir}" || return 1
     done
 
@@ -396,8 +391,7 @@ MountSystemEntries() {
         # Bind rootfs of host os to chroot environment
         if which findmnt > /dev/null 2>&1; then
             mkdir -p "${RootDir}/host" || return 1
-            findmnt -es --real -n -t "ext2,ext3,ext4,vfat,ntfs,xfs,btrfs" | awk '{print $1}' | while read -r MountPoint
-            do
+            findmnt -es --real -n -t "ext2,ext3,ext4,vfat,ntfs,xfs,btrfs" | awk '{print $1}' | while read -r MountPoint; do
                 # Skip unused folder binding: /boot;/boot/efi;/var;/backup;
                 (echo "${MountPoint}" | grep -q -E "\/boot|\/boot\/efi|\/var|\/backup") && continue
                 mkdir -p "${RootDir}/host${MountPoint%/}"
@@ -422,13 +416,11 @@ UnMountSystemEntries() {
 
     local RootDir=$1
 
-    for dir in sys dev/pts dev proc
-    do
+    for dir in sys dev/pts dev proc; do
         UnMount --chroot "${RootDir}" "/${dir}" || return 1
     done
 
-    for dir in host tmp run
-    do
+    for dir in host tmp run; do
         UnMount "${RootDir}/${dir}" || return 1
     done
 
@@ -449,8 +441,7 @@ MountUserEntries() {
     local ExtPackageDir=$2
     local UserDir=${RootDir}/data
 
-    for dir in home root var/log
-    do
+    for dir in home root var/log; do
         mkdir -p "${RootDir}/${dir}" "${UserDir}/${dir}" || return 1
         Mount --bind "${UserDir}/${dir}" "${RootDir}/${dir}" || return 1
     done
@@ -476,8 +467,7 @@ UnMountUserEntries() {
     UnMount "${RootDir}/media/PackagesExtra"
     rm -rf "${RootDir}/media/PackagesExtra"
 
-    for dir in home root var/log
-    do
+    for dir in home root var/log; do
         UnMount "${RootDir}/${dir}" || return 1
     done
 
@@ -615,8 +605,7 @@ GenSums() {
     local Exclude=''
     Exclude="${Exclude:+${Exclude}|}isolinux/boot.cat"
     Exclude="${Exclude:+${Exclude}|}$(basename "${RootDir}")"
-    for Ex in "${ISOExcludeList[@]}";
-    do
+    for Ex in "${ISOExcludeList[@]}"; do
         Exclude="${Exclude:+${Exclude}|}${Ex}"
     done
 
@@ -626,14 +615,14 @@ GenSums() {
             SUM_TYPE_STR="MD5SUM"
             SUM_TOOL=md5sum
             SUM_FILE="md5sum.txt"
-        ;;
+            ;;
         sha256|sha256sum)
             SUM_TYPE_STR="SHA256SUM"
             SUM_TOOL=sha256sum
             SUM_FILE="SHA256SUMS"
-        ;;
+            ;;
         *)
-        ;;
+            ;;
     esac
 
     [ -f "${SUM_FILE}" ] && rm -f "${SUM_FILE}"
@@ -676,10 +665,8 @@ PrepareExcludes() {
     local ItemAbs Item ItemDirAbs ItemDir TargetDir
     case ${Method} in
         Backup)
-            for Exclude in "${ExcludeList[@]}";
-            do
-                find "${ISORootDirAbs}" -name "${Exclude}" | while read -r ItemAbs;
-                do
+            for Exclude in "${ExcludeList[@]}"; do
+                find "${ISORootDirAbs}" -name "${Exclude}" | while read -r ItemAbs; do
                     Item=${ItemAbs#*"${ISORootDirAbs}"/}
                     ItemDirAbs=$(dirname "${ItemAbs}")
                     ItemDir=${ItemDirAbs#*"${ISORootDirAbs}"/}
@@ -690,13 +677,11 @@ PrepareExcludes() {
                     mv -f "${ItemAbs}" "${TargetDir}"
                 done
             done
-        ;;
+            ;;
         Restore)
             if [ -d "${BackupDirAbs}" ]; then
-                for Exclude in "${ExcludeList[@]}";
-                do
-                    find "${BackupDirAbs}" -name "${Exclude}" | while read -r ItemAbs;
-                    do
+                for Exclude in "${ExcludeList[@]}"; do
+                    find "${BackupDirAbs}" -name "${Exclude}" | while read -r ItemAbs; do
                         Item=${ItemAbs#*"${BackupDirAbs}"/}
                         ItemDirAbs=$(dirname "${ItemAbs}")
                         ItemDir=${ItemDirAbs#*"${BackupDirAbs}"/}
@@ -709,11 +694,11 @@ PrepareExcludes() {
                 done
                 rm -rf "${BackupDirAbs}"
             fi
-        ;;
+            ;;
         *)
             echo -e "${Usage}"
             return 1
-        ;;
+            ;;
     esac
 }
 
@@ -836,7 +821,7 @@ MakeISO() {
     fi
 
     # Push ISO Root to build
-    if [ "x${LiveCDRoot}" != "x." ]; then
+    if [ "${LiveCDRoot}" != "." ]; then
         ISOFile=$(pwd)/${ISOFile}
         ISOLogFile=${ISOFile}.log
         pushd "${LiveCDRoot}" >/dev/null || exit $?
@@ -1077,8 +1062,7 @@ fi
 
 CheckBuildEnvironment || exit $?
 
-while [ $# -ne 0 ]
-do
+while [ $# -ne 0 ]; do
     case $1 in
         -m|m|mount)
             shift 1

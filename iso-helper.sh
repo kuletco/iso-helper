@@ -45,6 +45,13 @@ ISOExcludeList=(
     initrd.img.old
 )
 
+SystemProfiles=(
+    /etc/hosts
+    /etc/resolv.conf
+)
+SysFileBackSuff="sys_backup"
+SysFileAppliedSuff="sys_applied"
+
 # Echo Color Settings
 C_CLR="\\e[0m"
 C_H="\\e[1m"
@@ -367,6 +374,51 @@ UnMountCache() {
     return 0
 }
 
+# Usage: ApplySystemSettings <RootDir>
+ApplySystemSettings() {
+    local Usage="Usage: ApplySystemSettings <RootDir>"
+    if [ $# -ne 1 ] || [ -z "$1" ]; then
+        echo -e "${Usage}"
+        return 1
+    fi
+
+    local RootDir=$1
+
+    for Profile in "${SystemProfiles[@]}"; do
+        local Desc Cmd
+        if [ -e "${RootDir}${Profile}.${SysFileBackSuff}" ]; then
+            Desc="Backup File [${C_B}${RootDir##*${WorkDir}/}${Profile}.${SysFileBackSuff}${C_CLR}] exist ..."
+            Cmd=false
+            Caller "APPLY" "${Desc}" "${Cmd}"
+        elif [ -e "${RootDir}${Profile}" ]; then
+            Desc="${C_Y}${Profile}${C_CLR} --> ${C_B}${RootDir##*${WorkDir}/}${Profile}${C_CLR} ... "
+            Cmd="mv \"${RootDir}${Profile}\" \"${RootDir}${Profile}.${SysFileBackSuff}\" && cp -a \"${Profile}\" \"${RootDir}${Profile}\""
+            Caller "APPLY" "${Desc}" "${Cmd}" || continue
+            touch "${RootDir}${Profile}.${SysFileAppliedSuff}"
+        fi
+    done
+}
+
+# Usage: RestoreSystemSettings <RootDir>
+RestoreSystemSettings() {
+    local Usage="Usage: RestoreSystemSettings <RootDir>"
+    if [ $# -ne 1 ] || [ -z "$1" ]; then
+        echo -e "${Usage}"
+        return 1
+    fi
+
+    local RootDir=$1
+
+    for Profile in "${SystemProfiles[@]}"; do
+        if [ -e "${RootDir}${Profile}.${SysFileBackSuff}" ] && [ -f "${RootDir}${Profile}.${SysFileAppliedSuff}" ]; then
+            local Desc Cmd
+            Desc="${C_B}${RootDir##*${WorkDir}/}${Profile}${C_CLR} ... "
+            Cmd="rm -f \"${RootDir}${Profile}\"; mv \"${RootDir}${Profile}.${SysFileBackSuff}\" \"${RootDir}${Profile}\""
+            Caller "RESTORE" "${Desc}" "${Cmd}"
+        fi
+    done
+}
+
 # Usage: MountSystemEntries <RootDir>
 MountSystemEntries() {
     local Usage="Usage: MountSystemEntries <RootDir>"
@@ -403,6 +455,8 @@ MountSystemEntries() {
         return 99
     fi
 
+    ApplySystemSettings "${RootDir}"
+
     return 0
 }
 
@@ -425,6 +479,8 @@ UnMountSystemEntries() {
     done
 
     rm -rf "${RootDir}/host"
+
+    RestoreSystemSettings "${RootDir}"
 
     return 0
 }

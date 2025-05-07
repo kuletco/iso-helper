@@ -8,7 +8,7 @@
 
 # set -e
 
-Version=1.6.0
+Version=1.6.1
 
 ExecDir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 WorkDir=$(pwd)
@@ -146,6 +146,85 @@ GenUUID() {
     fi
     [ -n "${UUID}" ] || UUID=4c0efd70-04f4-45c4-88f3-fa943249da15
     echo "${UUID}"
+}
+
+# Usage: PatchAptInsecureRepo <RootDir>
+PatchAptInsecureRepo() {
+    local Usage="Usage: PatchAptInsecureRepo <RootDir>"
+    if [ $# -ne 1 ] || [ -z "$1" ]; then
+        echo -e "${Usage}"
+        return 1
+    fi
+
+    local RootDir=$1
+    local AptConfFile="/etc/apt/apt.conf.d/00-insecure-repo"
+
+    local Desc Cmd
+    Desc="Patch APT Configure [${C_B}${RootDir##*${WorkDir}/}${AptConfFile}${C_CLR}] ..."
+    Cmd="echo -e \"Acquire::AllowInsecureRepositories 1;\" > \"${RootDir}/${AptConfFile}\""
+    Caller "UNPATCH" "${Desc}" "${Cmd}"
+}
+
+# Usage: UnPatchAptInsecureRepo <RootDir>
+UnPatchAptInsecureRepo() {
+    local Usage="Usage: UnPatchAptInsecureRepo <RootDir>"
+    if [ $# -ne 1 ] || [ -z "$1" ]; then
+        echo -e "${Usage}"
+        return 1
+    fi
+
+    local RootDir=$1
+    local AptConfFile="/etc/apt/apt.conf.d/00-insecure-repo"
+
+    local Desc Cmd
+    Desc="Unpatch APT Configure [${C_B}${RootDir##*${WorkDir}/}${AptConfFile}${C_CLR}] ..."
+    Cmd="rm -f \"${RootDir}/${AptConfFile}\""
+    Caller "PATCH" "${Desc}" "${Cmd}"
+}
+
+# Usage: ApplySystemSettings <RootDir>
+ApplySystemSettings() {
+    local Usage="Usage: ApplySystemSettings <RootDir>"
+    if [ $# -ne 1 ] || [ -z "$1" ]; then
+        echo -e "${Usage}"
+        return 1
+    fi
+
+    local RootDir=$1
+
+    for Profile in "${SystemProfiles[@]}"; do
+        local Desc Cmd
+        if [ -e "${RootDir}${Profile}.${SysFileBackSuff}" ]; then
+            Desc="Backup File [${C_B}${RootDir##*${WorkDir}/}${Profile}.${SysFileBackSuff}${C_CLR}] exist ..."
+            Cmd=false
+            Caller "APPLY" "${Desc}" "${Cmd}"
+        elif [ -e "${RootDir}${Profile}" ]; then
+            Desc="${C_Y}${Profile}${C_CLR} --> ${C_B}${RootDir##*${WorkDir}/}${Profile}${C_CLR} ... "
+            Cmd="mv \"${RootDir}${Profile}\" \"${RootDir}${Profile}.${SysFileBackSuff}\" && cp -a \"${Profile}\" \"${RootDir}${Profile}\""
+            Caller "APPLY" "${Desc}" "${Cmd}" || continue
+            touch "${RootDir}${Profile}.${SysFileAppliedSuff}"
+        fi
+    done
+}
+
+# Usage: RestoreSystemSettings <RootDir>
+RestoreSystemSettings() {
+    local Usage="Usage: RestoreSystemSettings <RootDir>"
+    if [ $# -ne 1 ] || [ -z "$1" ]; then
+        echo -e "${Usage}"
+        return 1
+    fi
+
+    local RootDir=$1
+
+    for Profile in "${SystemProfiles[@]}"; do
+        if [ -e "${RootDir}${Profile}.${SysFileBackSuff}" ] && [ -f "${RootDir}${Profile}.${SysFileAppliedSuff}" ]; then
+            local Desc Cmd
+            Desc="${C_B}${RootDir##*${WorkDir}/}${Profile}${C_CLR} ... "
+            Cmd="rm -f \"${RootDir}${Profile}\"; mv \"${RootDir}${Profile}.${SysFileBackSuff}\" \"${RootDir}${Profile}\""
+            Caller "RESTORE" "${Desc}" "${Cmd}"
+        fi
+    done
 }
 
 # Usage: IsTargetMounted <Target>
@@ -374,51 +453,6 @@ UnMountCache() {
     return 0
 }
 
-# Usage: ApplySystemSettings <RootDir>
-ApplySystemSettings() {
-    local Usage="Usage: ApplySystemSettings <RootDir>"
-    if [ $# -ne 1 ] || [ -z "$1" ]; then
-        echo -e "${Usage}"
-        return 1
-    fi
-
-    local RootDir=$1
-
-    for Profile in "${SystemProfiles[@]}"; do
-        local Desc Cmd
-        if [ -e "${RootDir}${Profile}.${SysFileBackSuff}" ]; then
-            Desc="Backup File [${C_B}${RootDir##*${WorkDir}/}${Profile}.${SysFileBackSuff}${C_CLR}] exist ..."
-            Cmd=false
-            Caller "APPLY" "${Desc}" "${Cmd}"
-        elif [ -e "${RootDir}${Profile}" ]; then
-            Desc="${C_Y}${Profile}${C_CLR} --> ${C_B}${RootDir##*${WorkDir}/}${Profile}${C_CLR} ... "
-            Cmd="mv \"${RootDir}${Profile}\" \"${RootDir}${Profile}.${SysFileBackSuff}\" && cp -a \"${Profile}\" \"${RootDir}${Profile}\""
-            Caller "APPLY" "${Desc}" "${Cmd}" || continue
-            touch "${RootDir}${Profile}.${SysFileAppliedSuff}"
-        fi
-    done
-}
-
-# Usage: RestoreSystemSettings <RootDir>
-RestoreSystemSettings() {
-    local Usage="Usage: RestoreSystemSettings <RootDir>"
-    if [ $# -ne 1 ] || [ -z "$1" ]; then
-        echo -e "${Usage}"
-        return 1
-    fi
-
-    local RootDir=$1
-
-    for Profile in "${SystemProfiles[@]}"; do
-        if [ -e "${RootDir}${Profile}.${SysFileBackSuff}" ] && [ -f "${RootDir}${Profile}.${SysFileAppliedSuff}" ]; then
-            local Desc Cmd
-            Desc="${C_B}${RootDir##*${WorkDir}/}${Profile}${C_CLR} ... "
-            Cmd="rm -f \"${RootDir}${Profile}\"; mv \"${RootDir}${Profile}.${SysFileBackSuff}\" \"${RootDir}${Profile}\""
-            Caller "RESTORE" "${Desc}" "${Cmd}"
-        fi
-    done
-}
-
 # Usage: MountSystemEntries <RootDir>
 MountSystemEntries() {
     local Usage="Usage: MountSystemEntries <RootDir>"
@@ -456,6 +490,7 @@ MountSystemEntries() {
     fi
 
     ApplySystemSettings "${RootDir}"
+    PatchAptInsecureRepo "${RootDir}"
 
     return 0
 }
@@ -481,6 +516,7 @@ UnMountSystemEntries() {
     rm -rf "${RootDir}/host"
 
     RestoreSystemSettings "${RootDir}"
+    UnPatchAptInsecureRepo "${RootDir}"
 
     return 0
 }

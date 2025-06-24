@@ -296,11 +296,23 @@ Mount() {
         case $1 in
             -c|--chroot)
                 RootDir=$2
-                Prefix="${Prefix:+${Prefix} }chroot ${RootDir}"
+                if [ -z "${RootDir}" ]; then
+                    echo -e "${Usage}"
+                    return 1
+                fi
+                if [ ! -d "${RootDir}" ]; then
+                    echo -e "RootDir:[${RootDir}] Not Exist!"
+                    return 1
+                fi
+                Prefix="${Prefix:+${Prefix} }chroot \"${RootDir}\""
                 shift 2
                 ;;
             -t|--types)
                 local Type=$2
+                if [ -z "${RootDir}" ]; then
+                    echo -e "${Usage}"
+                    return 1
+                fi
                 Options="${Options:+${Options} }--types ${Type}"
                 shift 2
                 ;;

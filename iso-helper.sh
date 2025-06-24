@@ -45,6 +45,22 @@ ISOExcludeList=(
     initrd.img.old
 )
 
+SystemUtils=(
+    fuseiso
+    fusermount
+    findmnt
+    blkid
+    lsblk
+    losetup
+    parted
+    mkfs.ext4
+    mkfs.fat
+    mksquashfs
+    unsquashfs
+    genisoimage
+    isohybrid
+)
+
 SystemProfiles=(
     /etc/hosts
     /etc/resolv.conf
@@ -123,9 +139,7 @@ CheckQemuBinfmtSupport() {
 }
 
 CheckBuildEnvironment() {
-    Utils=(fuseiso fusermount blkid lsblk losetup parted mkfs.ext4 mkfs.fat mksquashfs findmnt)
-
-    for Util in "${Utils[@]}"; do
+    for Util in "${SystemUtils[@]}"; do
         if ! which "${Util}" >/dev/null 2>&1; then
             echo -e "Please install [${C_R}${Util}${C_CLR}] first"
             return 1

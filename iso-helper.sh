@@ -148,38 +148,38 @@ GenUUID() {
     echo "${UUID}"
 }
 
-# Usage: PatchAptInsecureRepo <RootDir>
+# Usage: PatchAptInsecureRepo <RootDir> <IsPatch: true|false>
 PatchAptInsecureRepo() {
-    local Usage="Usage: PatchAptInsecureRepo <RootDir>"
-    if [ $# -ne 1 ] || [ -z "$1" ]; then
+    local Usage="Usage: PatchAptInsecureRepo <RootDir> <IsPatch: true|false>"
+    if [ $# -ne 2 ] || [ -z "$1" ]; then
         echo -e "${Usage}"
         return 1
     fi
 
     local RootDir=$1
+    local IsPatch=$2
     local AptConfFile="/etc/apt/apt.conf.d/00-insecure-repo"
 
-    local Desc Cmd
-    Desc="Patch APT Configure [${C_B}${RootDir##*${WorkDir}/}${AptConfFile}${C_CLR}] ..."
-    Cmd="echo -e \"Acquire::AllowInsecureRepositories 1;\" > \"${RootDir}/${AptConfFile}\""
-    Caller "UNPATCH" "${Desc}" "${Cmd}"
-}
+    local Desc Cmd Title
 
-# Usage: UnPatchAptInsecureRepo <RootDir>
-UnPatchAptInsecureRepo() {
-    local Usage="Usage: UnPatchAptInsecureRepo <RootDir>"
-    if [ $# -ne 1 ] || [ -z "$1" ]; then
-        echo -e "${Usage}"
-        return 1
-    fi
-
-    local RootDir=$1
-    local AptConfFile="/etc/apt/apt.conf.d/00-insecure-repo"
-
-    local Desc Cmd
-    Desc="Unpatch APT Configure [${C_B}${RootDir##*${WorkDir}/}${AptConfFile}${C_CLR}] ..."
-    Cmd="rm -f \"${RootDir}/${AptConfFile}\""
-    Caller "PATCH" "${Desc}" "${Cmd}"
+    case "${IsPatch}" in
+        true|True|TRUE|1|Y|y|yes|Yes|YES)
+            Desc="Patch APT Configure [${C_B}${RootDir##*${WorkDir}/}${AptConfFile}${C_CLR}] ..."
+            Cmd="echo -e \"Acquire::AllowInsecureRepositories 1;\" > \"${RootDir}/${AptConfFile}\""
+            Title="PATCH"
+            ;;
+        false|False|FALSE|0|N|n|no|No|NO)
+            Desc="Unpatch APT Configure [${C_B}${RootDir##*${WorkDir}/}${AptConfFile}${C_CLR}] ..."
+            Cmd="rm -f \"${RootDir}/${AptConfFile}\""
+            Title="UNPATCH"
+            ;;
+        *)
+            echo "Invalid argument passed to PatchAptInsecureRepo"
+            echo "${Usage}"
+            return 1
+            ;;
+    esac
+    Caller "${Title}" "${Desc}" "${Cmd}"
 }
 
 # Usage: ApplySystemSettings <RootDir>
@@ -490,7 +490,7 @@ MountSystemEntries() {
     fi
 
     ApplySystemSettings "${RootDir}"
-    PatchAptInsecureRepo "${RootDir}"
+    PatchAptInsecureRepo "${RootDir}" true
 
     return 0
 }
@@ -516,7 +516,7 @@ UnMountSystemEntries() {
     rm -rf "${RootDir}/host"
 
     RestoreSystemSettings "${RootDir}"
-    UnPatchAptInsecureRepo "${RootDir}"
+    PatchAptInsecureRepo "${RootDir}" false
 
     return 0
 }

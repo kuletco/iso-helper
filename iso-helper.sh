@@ -447,10 +447,10 @@ MountCache() {
 
     local RootDir=$1
     local CacheDir=$2
-    local RootAptCache=${RootDir}/var/cache/apt
-    local RootAptLists=${RootDir}/var/lib/apt/lists
-    local CacheAptCache=${CacheDir}/aptcache
-    local CacheAptLists=${CacheDir}/aptlists
+    local RootAptCache=${RootDir%/}/var/cache/apt
+    local RootAptLists=${RootDir%/}/var/lib/apt/lists
+    local CacheAptCache=${CacheDir%/}/aptcache
+    local CacheAptLists=${CacheDir%/}/aptlists
 
     mkdir -p "${CacheAptCache}" "${CacheAptLists}" "${RootAptCache}" "${RootAptLists}" || return 1
 

@@ -87,6 +87,9 @@ C_FL="${C_R}FAILED${C_CLR}"
 C_WARN="${C_Y}WARNING${C_CLR}"
 C_ERROR="${C_R}ERROR${C_CLR}"
 
+## TODO: Add trap to clean up
+# trap 'Cleanup' INT TERM EXIT
+
 # Cmd Hook Methods:
 # hook_mkdir() {
 #     echo "$@"

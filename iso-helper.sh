@@ -288,6 +288,27 @@ GetTargetMountPoint() {
     echo "${MountedDir}"
 }
 
+# Usage: ReleaseOpendResources <RootDir>
+ReleaseOpendResources() {
+    local Usage="Usage: ReleaseOpendResources <RootDir>"
+    if [ $# -ne 1 ] || [ -z "$1" ]; then
+        echo -e "${Usage}"
+        return 1
+    fi
+
+    local RootDir=$1
+    local ResUsers
+
+    # Stop All Process first!!! TODO: Test Code!
+    pushd "${RootDir}/.." > /dev/null || exit $?
+    read -ra ResUsers <<< "$(fuser -a "$(basename "${RootDir}")" 2>/dev/null | grep "$(basename "${RootDir}")" | awk -F':' '{print $2}')"
+    for ResUser in "${ResUsers[@]}"; do
+        local PID=${ResUser:0:-1}
+        pgrep "${PID}" > /dev/null && kill -9 "${PID}"
+    done
+    popd >/dev/null || exit $?
+}
+
 # Usage: Mount [-c <RootDir>] [-t <Type> | -b] <Source> <Target>
 Mount() {
     local Usage="Usage: Mount [-c <RootDir>] [-t <Type> | -b] <Source> <Target>"
@@ -357,27 +378,6 @@ Mount() {
     Desc="${Options:+[${C_G}${Options}${C_CLR}] }${C_Y}${Source##*${WorkDir}/}${C_CLR} --> ${C_B}${Target##*${WorkDir}/}${C_CLR} ... "
     Cmd="${Prefix} mount ${Options} \"${Source}\" \"${Target}\""
     Caller "MOUNT" "${Desc}" "${Cmd}"
-}
-
-# Usage: ReleaseRes <RootDir>
-ReleaseRes() {
-    local Usage="Usage: ReleaseRes <RootDir>"
-    if [ $# -ne 1 ] || [ -z "$1" ]; then
-        echo -e "${Usage}"
-        return 1
-    fi
-
-    local RootDir=$1
-    local ResUsers
-
-    # Stop All Process first!!! TODO: Test Code!
-    pushd "${RootDir}/.." > /dev/null || exit $?
-    read -ra ResUsers <<< "$(fuser -a "$(basename "${RootDir}")" 2>/dev/null | grep "$(basename "${RootDir}")" | awk -F':' '{print $2}')"
-    for ResUser in "${ResUsers[@]}"; do
-        local PID=${ResUser:0:-1}
-        pgrep "${PID}" > /dev/null && kill -9 "${PID}"
-    done
-    popd >/dev/null || exit $?
 }
 
 # Usage: UnMount [-c <RootDir>] <Directory>
@@ -1193,7 +1193,7 @@ while [ $# -ne 0 ]; do
         -u|u|umount)
             shift 1
             CheckPrivilege || exit $?
-            ReleaseRes "${RootDir}" || exit $?
+            ReleaseOpendResources "${RootDir}" || exit $?
             UnMountSystemEntries "${RootDir}" || exit $?
             ;;
         -M|M|mkfs)

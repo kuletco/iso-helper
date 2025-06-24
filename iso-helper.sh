@@ -784,7 +784,7 @@ PrepareExcludes() {
     case ${Method} in
         Backup)
             for Exclude in "${ExcludeList[@]}"; do
-                find "${ISORootDirAbs}" -name "${Exclude}" | while read -r ItemAbs; do
+                find "${ISORootDirAbs}" -name "${Exclude}" -print0 | while IFS= read -r -d '' ItemAbs; do
                     Item=${ItemAbs#*"${ISORootDirAbs}"/}
                     ItemDirAbs=$(dirname "${ItemAbs}")
                     ItemDir=${ItemDirAbs#*"${ISORootDirAbs}"/}
@@ -799,7 +799,7 @@ PrepareExcludes() {
         Restore)
             if [ -d "${BackupDirAbs}" ]; then
                 for Exclude in "${ExcludeList[@]}"; do
-                    find "${BackupDirAbs}" -name "${Exclude}" | while read -r ItemAbs; do
+                    find "${BackupDirAbs}" -name "${Exclude}" -print0 | while IFS= read -r -d '' ItemAbs; do
                         Item=${ItemAbs#*"${BackupDirAbs}"/}
                         ItemDirAbs=$(dirname "${ItemAbs}")
                         ItemDir=${ItemDirAbs#*"${BackupDirAbs}"/}
@@ -833,7 +833,7 @@ function GetDebFileInfo() {
 
     echo "##### ${SectionTitle} #####"
     if [ -d "${LiveCDRoot}" ]; then
-        find "${LiveCDRoot}" -type f -name "*.deb" | while read -r line; do
+        find "${LiveCDRoot}" -type f -name "*.deb" -print0 | while IFS= read -r -d '' line; do
             echo "##### ${SectionTitle}.$(basename "${line}") #####"
             dpkg-deb --info "${line}" | grep -E "Package:|Version:|Architecture:|Description:"
         done

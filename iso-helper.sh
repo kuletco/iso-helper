@@ -18,6 +18,10 @@ SquashfsFile=${WorkDir}/filesystem.squashfs
 FileSystemSize=${WorkDir}/filesystem.size
 FileSystemManifest=${WorkDir}/filesystem.manifest
 
+HostOSRVersion=$(cat "/etc/os-release" | grep "^VERSION_ID=" | cut -d "=" -f2 | tr -d '"')
+HostOSRVerMajor=$(echo "${HostOSRVersion}" | cut -d. -f1)
+HostOSRVerMinor=$(echo "${HostOSRVersion}" | cut -d. -f2)
+
 ISOExcludeList=(
     squashfs-root
     squashfs-root.bk
@@ -58,8 +62,10 @@ SystemUtils=(
     mksquashfs
     unsquashfs
     genisoimage
-    isohybrid
 )
+if [ ${HostOSRVerMajor} -le 20 ]; then
+    SystemUtils=(${SystemUtils[@]} isohybrid)
+fi
 
 SystemProfiles=(
     /etc/hosts

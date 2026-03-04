@@ -488,6 +488,30 @@ UnMountCache() {
     return 0
 }
 
+# Usage: IsSystemEntriesMounted <RootDir>
+IsSystemEntriesMounted() {
+    local Usage="Usage: IsSystemEntriesMounted <RootDir>"
+    if [ $# -ne 1 ] || [ -z "$1" ]; then
+        echo -e "${Usage}"
+        return 1
+    fi
+
+    local RootDir=$1
+    local SysDirs=("/proc" "/sys" "/dev" "/dev/pts" "/run" "/tmp")
+
+    for dir in ${SysDirs[@]}; do
+        [ -d "${RootDir}${dir}" ] && mountpoint -q "${RootDir}${dir}" && return 0
+    done
+
+    if [ -d "${RootDir}/host" ]; then
+        find "${RootDir}/host" -mindepth 1 -maxdepth 1 -type d | while read -r dir; do
+            mountpoint -q "${dir}" && return 0
+        done
+    fi
+
+    return 1
+}
+
 # Usage: MountSystemEntries <RootDir>
 MountSystemEntries() {
     local Usage="Usage: MountSystemEntries <RootDir>"
@@ -617,6 +641,11 @@ MkSquashfs() {
         return 1
     fi
 
+    if IsSystemEntriesMounted "${RootDir}"; then
+        echo -e "System entries has been mounted. Please unmount them first."
+        return 1
+    fi
+
     local SQUASHFSARGS=''
     SQUASHFSARGS="${SQUASHFSARGS:+${SQUASHFSARGS} }-b 1M"
     # SQUASHFSARGS="${SQUASHFSARGS:+${SQUASHFSARGS} }-comp xz"
@@ -643,6 +672,11 @@ UnSquashfs() {
 
     local Squashfs=$1
     local RootDir=squashfs-root
+
+    if IsSystemEntriesMounted "${RootDir}"; then
+        echo -e "System entries has been mounted. Please unmount them first."
+        return 1
+    fi
 
     local Desc Cmd
     if [ -d "${RootDir}" ]; then

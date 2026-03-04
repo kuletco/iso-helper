@@ -572,7 +572,7 @@ UnMountSystemEntries() {
         UnMount "${RootDir}/${dir}" || return 1
     done
 
-    rm -rf "${RootDir}/host"
+    rm -rf "${RootDir:?}/host"
 
     RestoreSystemSettings "${RootDir}"
     PatchAptInsecureRepo "${RootDir}" false
@@ -616,7 +616,7 @@ UnMountUserEntries() {
 
     # Mount ExtraPackage to rootfs/media
     UnMount "${RootDir}/media/PackagesExtra"
-    rm -rf "${RootDir}/media/PackagesExtra"
+    rm -rf "${RootDir:?}/media/PackagesExtra"
 
     for dir in home root var/log; do
         UnMount "${RootDir}/${dir}" || return 1
@@ -681,7 +681,7 @@ UnSquashfs() {
     local Desc Cmd
     if [ -d "${RootDir}" ]; then
         Desc="Removing exist RootDir [${C_B}${RootDir##*${WorkDir}/}${C_CLR}] ... "
-        Cmd="rm -rf \"${RootDir}\""
+        Cmd="rm -rf \"${RootDir:?}\""
         Caller "REMOVE" "${Desc}" "${Cmd}"
     fi
     Desc="${C_H}${Squashfs##*${WorkDir}/}${C_CLR} --> ${C_B}${RootDir##*${WorkDir}/}${C_CLR} ... "
@@ -853,7 +853,7 @@ PrepareExcludes() {
                         mv -f "${ItemAbs}" "${TargetDir}"
                     done
                 done
-                rm -rf "${BackupDirAbs}"
+                rm -rf "${BackupDirAbs:?}"
             fi
             ;;
         *)
@@ -944,7 +944,7 @@ function GenerateISOInfo() {
 
         umount "${FSMountDir}"
         umount "${ISOMountDir}"
-        rm -rf "${ISOMountDir}" "${FSMountDir}"
+        rm -rf "${ISOMountDir:?}" "${FSMountDir:?}"
 
         chown "${User}":"${User}" "${ISOInfoFile}"
     fi
@@ -1148,7 +1148,7 @@ UnpackISO() {
         return $?
     fi
 
-    rm -rf "${ISOMount}"
+    rm -rf "${ISOMount:?}"
 
     Desc="Processing permissive of the files and folders [${C_B}${LiveCDRoot}${C_CLR}] ... "
     Cmd="chmod u+w -R \"${LiveCDRoot}\""

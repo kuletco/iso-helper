@@ -109,6 +109,33 @@ C_ERROR="${C_R}ERROR${C_CLR}"
 # }
 # alias mkdir='hook_mkdir'
 
+# Safe Remover
+SafeRemover() {
+    Usage="SafeRemover <File|Dir> ..."
+    if [ $# -lt 1 ]; then
+        echo "${Usage}"
+        return 1
+    fi
+
+    local IgnoreDirs=(
+        /
+        /{proc,dev,dev/pts,sys}
+        /{boot,boot/efi,etc,usr,var,opt,srv}
+        /{root,home}
+        /{bin,sbin,lib,lib64}
+        /{mnt,media}
+        /{run,tmp}
+    )
+
+    for Item in "$@"; do
+        if [ ! -d "${Item}" ]; then
+            rm -f "${Item}"
+        else
+            local
+        fi
+    done
+}
+
 # Usage: Caller <Prefix> <Desc> <Cmd>
 Caller() {
     Usage="Caller <Prefix> <Desc> <Cmd>"
@@ -1139,6 +1166,7 @@ MakeISO() {
             ReturnCode=1
         fi
     fi
+
     chown "${User}":"${User}" "${ISOFile}"
 
     # Calc ISO Sum

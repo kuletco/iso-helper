@@ -63,7 +63,7 @@ SystemUtils=(
     unsquashfs
     genisoimage
 )
-if [ ${HostOSRVerMajor} -le 20 ]; then
+if [ ${HostOSRVerMajor#v} -le 20 ]; then
     SystemUtils=(${SystemUtils[@]} isohybrid)
 fi
 

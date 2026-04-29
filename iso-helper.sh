@@ -8,7 +8,13 @@
 
 # set -e
 
-Version=1.6.1
+Version=1.7.0
+Bootloader="isolinux"
+BootloaderEFI=1
+BootloaderEFIPartition=0
+# Bootloader="grub2"
+# BootloaderGrub2="grub_hybrid.img"
+# BootloaderGrub2ISO="ubuntu-24.04-desktop-amd64.iso"
 
 ExecDir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 WorkDir=$(pwd)
@@ -990,9 +996,12 @@ MakeISO() {
     fi
 
     local ISOARGS=''
+    ISOARGS="${ISOARGS:+${ISOARGS} }-as mkisofs"
     # ISOARGS="${ISOARGS:+${ISOARGS} }-check-oldnames"
-    ISOARGS="${ISOARGS:+${ISOARGS} }-sysid 'LINUX'"
+    ISOARGS="${ISOARGS:+${ISOARGS} }-r"
+    ISOARGS="${ISOARGS:+${ISOARGS} }-rational-rock"
     ISOARGS="${ISOARGS:+${ISOARGS} }-volid \"${ISOLabel}\""
+    ISOARGS="${ISOARGS:+${ISOARGS} }-sysid 'LINUX'"
     ISOARGS="${ISOARGS:+${ISOARGS} }-joliet"
     ISOARGS="${ISOARGS:+${ISOARGS} }-joliet-long"
     ISOARGS="${ISOARGS:+${ISOARGS} }-full-iso9660-filenames"
@@ -1002,27 +1011,92 @@ MakeISO() {
     ISOARGS="${ISOARGS:+${ISOARGS} }-input-charset utf-8"
     ISOARGS="${ISOARGS:+${ISOARGS} }-cache-inodes"
     ISOARGS="${ISOARGS:+${ISOARGS} }-allow-multidot"
-    ISOARGS="${ISOARGS:+${ISOARGS} }-rational-rock"
     ISOARGS="${ISOARGS:+${ISOARGS} }-translation-table"
     ISOARGS="${ISOARGS:+${ISOARGS} }-udf"
     # ISOARGS="${ISOARGS:+${ISOARGS} }-allow-limited-size"
-    if [ -f "${LiveCDRoot}/isolinux/isolinux.bin" ]; then
-        ISOARGS="${ISOARGS:+${ISOARGS} }-no-emul-boot"
-        ISOARGS="${ISOARGS:+${ISOARGS} }-boot-load-size 4"
-        ISOARGS="${ISOARGS:+${ISOARGS} }-boot-info-table"
-        ISOARGS="${ISOARGS:+${ISOARGS} }-eltorito-boot isolinux/isolinux.bin"
-        ISOARGS="${ISOARGS:+${ISOARGS} }-eltorito-catalog isolinux/boot.cat"
+    # 设置 Bootloader MBR
+    case "${Bootloader}" in
+        "isolinux")
+            if [ "${BootloaderEFI}" -eq 1 ]; then
+                # hybrid MBR 先放（Debian 常见位置）
+                if [ ! -f "/usr/lib/ISOLINUX/isohdpfx.bin" ]; then
+                    echo -e "Cannot find hybrid-mbr isohdpfx.bin."
+                    return 1
+                fi
+                ISOARGS="${ISOARGS:+${ISOARGS} }-isohybrid-mbr /usr/lib/ISOLINUX/isohdpfx.bin"
+            fi
+            ;;
+        "grub2")
+            ISOARGS="${ISOARGS:+${ISOARGS} }-grub2_mbr"
+            if [ -f "${BootloaderGrub2}" ]; then
+                ISOARGS="${ISOARGS:+${ISOARGS} }\"${BootloaderGrub2}\""
+            elif [ -f "${BootloaderGrub2ISO}" ]; then
+                if [ "${BootloaderEFI}" -eq 1 ]; then
+                    ISOARGS="${ISOARGS:+${ISOARGS} }--interval:local_fs:0s-15s:zero_mbrpt,zero_gpt:\'${BootloaderGrub2ISO}\'"
+                else
+                    ISOARGS="${ISOARGS:+${ISOARGS} }--interval:local_fs:0s-15s:zero_mbrpt:\'${BootloaderGrub2ISO}\'"
+                fi
+            else
+                echo -e "Cannot find grub2 mbr bootloader."
+                return 1
+            fi
+            if [ "${BootloaderEFI}" -eq 1 ]; then
+                BootloaderEFIPartition=1
+            fi
+            ;;
+        *)
+            echo -e "Cannot find grub2 mbr bootloader."
+            return 1
+            ;;
+    esac
+    # 分区偏移
+    ISOARGS="${ISOARGS:+${ISOARGS} }-partition_offset 16"
+    if [ "${BootloaderEFIPartition}" -eq 1 ]; then
+        # 附加 EFI 分区
+        if [ ! -f "${LiveCDRoot}/boot/grub/efi.img" ]; then
+            echo -e "EFI image not found, skip append EFI partition."
+            BootloaderEFIPartition=0
+        else
+            ISOARGS="${ISOARGS:+${ISOARGS} }-partition_cyl_align off"
+            ISOARGS="${ISOARGS:+${ISOARGS} }-mbr_force_bootable on"
+            ISOARGS="${ISOARGS:+${ISOARGS} }-append_partition 2 28732ac11ff8d211ba4b00a0c93ec93b ${LiveCDRoot}/boot/grub/efi.img"
+            ISOARGS="${ISOARGS:+${ISOARGS} }-appended_part_as_gpt"
+            ISOARGS="${ISOARGS:+${ISOARGS} }-iso_mbr_part_type a2a0d0ebe5b9334487c068b6b72699c7"
+        fi
     fi
-    if [ -f "${LiveCDRoot}/boot/grub/efi.img" ]; then
+    # BIOS El Torito
+    if [ ! -f "${LiveCDRoot}/isolinux/isolinux.bin" ]; then
+        echo "BIOS El Torito not found, please check your LiveCD root directory."
+        return 1
+    fi
+    ISOARGS="${ISOARGS:+${ISOARGS} }-eltorito-boot isolinux/isolinux.bin"
+    ISOARGS="${ISOARGS:+${ISOARGS} }-eltorito-catalog isolinux/boot.cat"
+    ISOARGS="${ISOARGS:+${ISOARGS} }-no-emul-boot"
+    ISOARGS="${ISOARGS:+${ISOARGS} }-boot-load-size 4"
+    ISOARGS="${ISOARGS:+${ISOARGS} }-boot-info-table"
+    if [ "${Bootloader}" = "grub2" ]; then
+        ISOARGS="${ISOARGS:+${ISOARGS} }-grub2_boot_info on"
+    fi
+    if [ "${BootloaderEFI}" -eq 1 ]; then
+        # EFI El Torito
         ISOARGS="${ISOARGS:+${ISOARGS} }-eltorito-alt-boot"
+            ISOARGS="${ISOARGS:+${ISOARGS} }-efi-boot"
+        if [ "${BootloaderEFIPartition}" -eq 0 ]; then
+            ISOARGS="${ISOARGS:+${ISOARGS} }boot/grub/efi.img"
+        else
+            ISOARGS="${ISOARGS:+${ISOARGS} }--interval:appended_partition_2:::"
+        fi
         ISOARGS="${ISOARGS:+${ISOARGS} }-no-emul-boot"
-        ISOARGS="${ISOARGS:+${ISOARGS} }-efi-boot boot/grub/efi.img"
+
+        ISOARGS="${ISOARGS:+${ISOARGS} }-isohybrid-gpt-basdat"
+        ISOARGS="${ISOARGS:+${ISOARGS} }-isohybrid-apm-hfsplus"
     fi
     # ISOARGS="${ISOARGS:+${ISOARGS} }-no-bak"
     ISOARGS="${ISOARGS:+${ISOARGS} }-log-file ${ISOLogFile}.tmp"
     # ISOARGS="${ISOARGS:+${ISOARGS} }-quiet"
     ISOARGS="${ISOARGS:+${ISOARGS} }-verbose"
     # ISOARGS="${ISOARGS:+${ISOARGS} }-debug"
+    ISOARGS="${ISOARGS:+${ISOARGS} }-output \"${ISOFile}\""
 
     # Backup Exclude files
     local UUID
@@ -1044,8 +1118,10 @@ MakeISO() {
         Cmd="rm -f \"${ISOLogFile}\""
         Caller "REMOVE" "${Desc}" "${Cmd}"
     fi
+
     Desc="${C_B}$(basename "$(pwd)")${C_CLR} --> ${C_H}$(basename "${ISOFile}")${C_CLR} ... "
-    Cmd="genisoimage ${ISOARGS} -output \"${ISOFile}\" \"${LiveCDRoot}\"; cat \"${ISOLogFile}.tmp\" >> \"${ISOLogFile}\"; rm -f \"${ISOLogFile}.tmp\""
+    # Cmd="genisoimage ${ISOARGS} -output \"${ISOFile}\" \"${LiveCDRoot}\"; cat \"${ISOLogFile}.tmp\" >> \"${ISOLogFile}\"; rm -f \"${ISOLogFile}.tmp\""
+    Cmd="xorriso ${ISOARGS} \"${LiveCDRoot}\"; cat \"${ISOLogFile}.tmp\" >> \"${ISOLogFile}\"; rm -f \"${ISOLogFile}.tmp\""
     if ! Caller "MAKEISO" "${Desc}" "${Cmd}"; then
         ReturnCode=1
         cat "${ISOLogFile}"
